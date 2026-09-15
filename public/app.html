@@ -125,6 +125,17 @@ a{color:inherit;text-decoration:none}
 .chart-card .ch-sub{font-size:11.5px;color:var(--muted)}
 .chart-wrap{position:relative;height:236px;margin-top:10px}
 .chart-wrap.sm{height:210px}
+.charts-row3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:1100px){.charts-row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.charts-row3{grid-template-columns:minmax(0,1fr)}}
+.chart-wrap.md{height:270px}
+.chart-total{font-size:18px;font-weight:700;letter-spacing:-.3px;margin-top:4px;font-variant-numeric:tabular-nums}
+.remember{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);margin:2px 0 16px;cursor:pointer;user-select:none}
+.remember input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.pay-form{display:grid;grid-template-columns:150px 1fr 1.4fr auto;gap:10px;align-items:end;margin-top:10px}
+@media(max-width:640px){.pay-form{grid-template-columns:1fr 1fr}}
+.days-badge{display:inline-block;min-width:44px;text-align:center;padding:2px 8px;border-radius:7px;font-size:11.5px;font-weight:600;background:#f1f2f5;color:var(--ink-2)}
+.days-badge.warm{background:var(--warn-bg);color:var(--warn)}.days-badge.hot{background:#fdeef0;color:var(--neg-text)}
 
 .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;font-weight:600;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm);transition:.13s}
 .btn:hover{background:#fafbfc;border-color:rgba(11,11,11,.14)}
@@ -252,9 +263,12 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
     <h1>Business Flow</h1>
     <div class="sub" id="li_sub">Ingresa a tu espacio de trabajo</div>
     <div class="login-err" id="loginErr">Usuario o contraseña incorrectos.</div>
-    <div class="fg"><label id="li_lblUser">Usuario</label><input id="li_user" autocomplete="off"></div>
-    <div class="fg"><label id="li_lblPass">Contraseña</label><input id="li_pass" type="password" placeholder="••••••••"></div>
-    <button class="btn primary" id="li_btn" style="width:100%;height:44px;justify-content:center;font-size:14px" onclick="doLogin()">Iniciar sesión</button>
+    <form id="loginForm" method="post" action="/" autocomplete="on" onsubmit="event.preventDefault();doLogin();">
+      <div class="fg"><label id="li_lblUser" for="li_user">Usuario</label><input id="li_user" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+      <div class="fg"><label id="li_lblPass" for="li_pass">Contraseña</label><input id="li_pass" name="password" type="password" autocomplete="current-password" placeholder="••••••••" required></div>
+      <label class="remember"><input type="checkbox" id="li_remember" checked><span id="li_lblRemember">Guardar contraseña en este navegador</span></label>
+      <button type="submit" class="btn primary" id="li_btn" style="width:100%;height:44px;justify-content:center;font-size:14px">Iniciar sesión</button>
+    </form>
   </div>
 </div>
 
@@ -315,7 +329,24 @@ function mName(i){ return (lang==='es'?MONTHS_ES:MONTHS)[i]; }
 const ROLE_L={admin:{en:'Admin',es:'Admin'},manager:{en:'Manager',es:'Gerente'},sales:{en:'Sales',es:'Vendedor'}};
 function roleLabel(r){ return (ROLE_L[r]||{en:r,es:r})[lang]; }
 const ES={
-  "Price":"Precio","Cost USD":"Costo USD","Cost PYG":"Costo PYG","Sell PYG":"Venta PYG","Watches sold":"Vendidos","Purchase Date":"Fecha de compra","FX Rate":"Cotización",
+  "Price":"Precio",
+  // v3 additions
+  "Save password in this browser":"Guardar contraseña en este navegador",
+  "Inventory Purchase":"Compra de inventario",
+  "Client payments":"Pagos del cliente","Client payment":"Pago de cliente","Register payment":"Registrar pago","Payment registered":"Pago registrado","Payment removed":"Pago eliminado",
+  "Paid":"Pagado","Payment date":"Fecha de pago","Note":"Nota","e.g. transfer, cash…":"ej. transferencia, efectivo…","No payments yet":"Sin pagos aún",
+  "Credit sold":"Vendido a crédito","Amount paid":"Monto pagado","payment exceeds credit balance":"El pago supera el saldo a crédito","invalid client":"Cliente inválido",
+  "Payments only reduce this client's credit balance; the revenue was recorded with the credit sale.":"Los pagos solo descuentan el saldo a crédito del cliente; el ingreso ya se registró con la venta a crédito.",
+  "This client has no pending credit balance.":"Este cliente no tiene saldo a crédito pendiente.",
+  "this expense comes from an inventory item — delete the item instead":"Este gasto proviene de una pieza del inventario — elimina la pieza",
+  "Stock by Brand":"Inventario por Marca","Stock Value at Cost":"Valor de Inventario a Costo","Stock Value at Sale Price":"Valor de Inventario a Precio de Venta",
+  "Available pieces at month end":"Piezas disponibles al cierre del mes","Available pieces as of today":"Piezas disponibles a hoy",
+  "Days in stock":"Días en inventario",
+  "In stock at month end":"En stock al cierre de","In stock today":"En stock hoy",
+  "The purchase cost is recorded automatically as an expense in Business Flow.":"El costo de compra se registra automáticamente como gasto en el Flujo del Negocio.",
+  "Closing snapshot":"Corte al cierre","Snapshot as of":"Corte al","Summary by brand":"Resumen por marca","Qty":"Cant.","Cost value":"Valor a costo","Sale value":"Valor a venta",
+  "Sales by Brand (month)":"Ventas por Marca (mes)","Sales by Brand (all time)":"Ventas por Marca (histórico)","Revenue share · ":"Participación de ingresos · ","All-time revenue share":"Participación histórica de ingresos","No sales this month":"Sin ventas este mes","No stock at this date":"Sin stock a esta fecha",
+"Cost USD":"Costo USD","Cost PYG":"Costo PYG","Sell PYG":"Venta PYG","Watches sold":"Vendidos","Purchase Date":"Fecha de compra","FX Rate":"Cotización",
   // login
   "Ingresa a tu espacio de trabajo":"Ingresa a tu espacio de trabajo",
   "Sign in to your business workspace":"Ingresa a tu espacio de trabajo",
@@ -459,13 +490,13 @@ function setLang(l){ lang=l; try{localStorage.setItem('bf_lang',lang);}catch(e){
   if(session.user){ buildNav(); buildCoSwitch(); refreshUserCard(); refreshBrand(); go(currentView); }
 }
 function applyI18n(){
-  const map={li_sub:'Sign in to your business workspace',li_lblUser:'Username',li_lblPass:'Password',li_btn:'Sign in',loginErr:'Incorrect username or password.',balLabel:'Current Balance'};
+  const map={li_sub:'Sign in to your business workspace',li_lblUser:'Username',li_lblPass:'Password',li_btn:'Sign in',li_lblRemember:'Save password in this browser',loginErr:'Incorrect username or password.',balLabel:'Current Balance'};
   Object.entries(map).forEach(([id,en])=>{ const el=document.getElementById(id); if(el) el.textContent=(lang==='es'?(ES[en]||en):en); });
   const uEl=document.getElementById('li_user'); if(uEl) uEl.placeholder=lang==='es'?'ej. AdminJoo':'e.g. AdminJoo';
   document.querySelectorAll('#loginLang button, #topLang button, #setLang button').forEach(b=>b.classList.toggle('on',b.dataset.lang===lang));
 }
 
-const DB={companies:[],users:[],inventory:[],sales:[],expenses:[],revenues:[],clients:[]};
+const DB={companies:[],users:[],inventory:[],sales:[],expenses:[],revenues:[],clients:[],payments:[]};
 let idc=1; const uid=p=>(p||'')+(idc++);
 let session={user:null};        // logged-in user
 let adminCompanyId=null;        // company an admin is currently inspecting
@@ -485,7 +516,7 @@ async function loadState(companyId){
   const st=await apiReq('GET','/api/state'+q);
   session.user=st.me;
   DB.companies=st.companies||[]; DB.users=st.users||[]; DB.inventory=st.inventory||[];
-  DB.clients=st.clients||[]; DB.sales=st.sales||[]; DB.expenses=st.expenses||[]; DB.revenues=st.revenues||[];
+  DB.clients=st.clients||[]; DB.sales=st.sales||[]; DB.expenses=st.expenses||[]; DB.revenues=st.revenues||[]; DB.payments=st.payments||[];
   adminCompanyId=st.activeCompanyId||null;
   return st;
 }
@@ -500,7 +531,8 @@ const parseNum=s=>{const n=parseFloat(String(s).replace(/[^\d.]/g,''));return is
 const parseInt2=s=>{const n=parseFloat(String(s).replace(/[^\d]/g,''));return isNaN(n)?0:n;};
 const ymKey=d=>d.slice(0,7);
 const monthLabel=ym=>{const[y,m]=ym.split('-');return mName(+m-1)+' '+y;};
-const today=()=>new Date().toISOString().slice(0,10);
+const localISO=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const today=()=>localISO(new Date());
 const fmtDate=d=>{const[y,m,day]=d.split('-');return `${day} ${mName(+m-1)} ${y}`;};
 const initials=n=>n.split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
 const avColor=seed=>AV_COLORS[[...String(seed)].reduce((a,c)=>a+c.charCodeAt(0),0)%AV_COLORS.length];
@@ -542,13 +574,25 @@ async function doLogin(){
   document.getElementById('loginErr').classList.remove('show');
   try{
     await apiReq('POST','/api/auth/login',{username:u,password:p});
+    await saveBrowserCredential(u,p);
     await loadState();
     document.getElementById('login').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
     bootApp();
   }catch(e){ document.getElementById('loginErr').classList.add('show'); }
 }
+// Explicitly offer to save the password in the browser's password manager (Chrome/Edge/Android).
+// Safari/Firefox rely on the <form> autocomplete attributes and show their own prompt.
+async function saveBrowserCredential(u,p){
+  try{
+    if(!document.getElementById('li_remember').checked) return;
+    if(window.PasswordCredential && navigator.credentials && navigator.credentials.store){
+      await navigator.credentials.store(new PasswordCredential({id:u,password:p,name:u}));
+    }
+  }catch(e){}
+}
 async function logout(){ try{ await apiReq('POST','/api/auth/logout'); }catch(e){}
+  try{ if(navigator.credentials&&navigator.credentials.preventSilentAccess) await navigator.credentials.preventSilentAccess(); }catch(e){}
   session.user=null; document.getElementById('app').classList.add('hidden'); document.getElementById('login').classList.remove('hidden');
   document.getElementById('li_user').value=''; document.getElementById('li_pass').value=''; document.getElementById('loginErr').classList.remove('show'); }
 
@@ -652,8 +696,11 @@ function dataMonths(){ // months from first transaction to now (empty if no data
   return arr; // newest first
 }
 function lastNMonths(n){ const now=new Date(),arr=[]; for(let i=n-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);} return arr; }
-function clientBalance(cid){ // outstanding credit = sum of credit sales for this client
-  return coScope(DB.sales).filter(s=>s.clientId===cid&&s.payment==='Credit').reduce((a,s)=>a+s.price,0);
+function clientCreditSold(cid){ return coScope(DB.sales).filter(s=>s.clientId===cid&&s.payment==='Credit').reduce((a,s)=>a+s.price,0); }
+function clientPayments(cid){ return coScope(DB.payments).filter(p=>p.clientId===cid); }
+function clientPaid(cid){ return clientPayments(cid).reduce((a,p)=>a+p.amount,0); }
+function clientBalance(cid){ // outstanding credit = credit sales − payments received
+  return Math.max(0,clientCreditSold(cid)-clientPaid(cid));
 }
 function clientTotal(cid){ return coScope(DB.sales).filter(s=>s.clientId===cid).reduce((a,s)=>a+s.price,0); }
 
@@ -686,6 +733,8 @@ function renderDashBody(){
   const showProfit=can('profitCharts');
   const brandRev={}; revList().filter(r=>r.saleId).forEach(r=>brandRev[r.brand]=(brandRev[r.brand]||0)+r.amount);
   const bestBrand=Object.entries(brandRev).sort((x,y)=>y[1]-x[1])[0];
+  const brandRevMonth={}; a.rev.filter(r=>r.saleId).forEach(r=>brandRevMonth[r.brand]=(brandRevMonth[r.brand]||0)+r.amount);
+  const brandRevMonthE=Object.entries(brandRevMonth).sort((x,y)=>y[1]-x[1]);
   const margin=a.revSum?(a.profit/a.revSum*100):0;
   const invAvail=invList().filter(i=>i.status==='Available').length;
   const months=dataMonths(); const idx=months.indexOf(ym); const prev=idx>=0&&idx<months.length-1?monthAgg(months[idx+1]):null;
@@ -708,9 +757,10 @@ function renderDashBody(){
     html+=`<div class="grid charts-row">
       <div class="card chart-card"><h3>Revenue vs Expenses</h3><div class="ch-sub">Last 6 months · PYG</div><div class="chart-wrap"><canvas id="chRevExp"></canvas></div></div>
       <div class="card chart-card"><h3>Monthly Profit</h3><div class="ch-sub">Net profit trend · PYG</div><div class="chart-wrap"><canvas id="chProfit"></canvas></div></div></div>
-      <div class="grid charts-row" style="margin-top:18px">
-      <div class="card chart-card"><h3>Sales by Brand</h3><div class="ch-sub">Revenue share</div><div class="chart-wrap sm"><canvas id="chBrand"></canvas></div></div>
-      <div class="card chart-card"><h3>Delivery Methods</h3><div class="ch-sub">How ${pPlural().toLowerCase()} reach buyers</div><div class="chart-wrap sm"><canvas id="chDelivery"></canvas></div></div></div>`;
+      <div class="grid charts-row3" style="margin-top:18px">
+      <div class="card chart-card"><h3>Sales by Brand (month)</h3><div class="ch-sub">Revenue share · ${monthLabel(ym)}</div><div class="chart-wrap md">${brandRevMonthE.length?'<canvas id="chBrandMonth"></canvas>':'<div class="empty">No sales this month</div>'}</div></div>
+      <div class="card chart-card"><h3>Sales by Brand (all time)</h3><div class="ch-sub">All-time revenue share</div><div class="chart-wrap md"><canvas id="chBrand"></canvas></div></div>
+      <div class="card chart-card"><h3>Delivery Methods</h3><div class="ch-sub">How ${pPlural().toLowerCase()} reach buyers</div><div class="chart-wrap md"><canvas id="chDelivery"></canvas></div></div></div>`;
   }else{
     // sales: revenue trend only, plus their own quick stats
     html+=`<div class="card chart-card"><h3>My Revenue Trend</h3><div class="ch-sub">Last 6 months · PYG</div><div class="chart-wrap"><canvas id="chRevOnly"></canvas></div></div>`;
@@ -723,10 +773,13 @@ function renderDashBody(){
     mkChart('chRevExp',{type:'bar',data:{labels,datasets:[{label:tr('Revenue'),data:m6.map(m=>monthAgg(m).revSum),backgroundColor:'#1baf7a',borderRadius:5,maxBarThickness:26},{label:tr('Expenses'),data:m6.map(m=>monthAgg(m).expSum),backgroundColor:'#eb6834',borderRadius:5,maxBarThickness:26}]},options:barOpts()});
     mkChart('chProfit',{type:'line',data:{labels,datasets:[{label:tr('Net profit'),data:m6.map(m=>monthAgg(m).profit),borderColor:'#2a78d6',backgroundColor:grad('#2a78d6'),fill:true,tension:.35,borderWidth:2,pointRadius:3.5,pointBackgroundColor:'#2a78d6',pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:lineOpts()});
     const bE=Object.entries(brandRev).sort((x,y)=>y[1]-x[1]);
-    mkChart('chBrand',{type:'doughnut',data:{labels:bE.map(e=>e[0]),datasets:[{data:bE.map(e=>e[1]),backgroundColor:SERIES,borderColor:'#fff',borderWidth:2}]},options:donutOpts(true)});
+    // keep each brand's colour identical in both brand charts
+    const brandColor=b=>SERIES[Math.max(0,bE.findIndex(e=>e[0]===b))%SERIES.length];
+    mkChart('chBrand',{type:'doughnut',data:{labels:bE.map(e=>e[0]),datasets:[{data:bE.map(e=>e[1]),backgroundColor:bE.map(e=>brandColor(e[0])),borderColor:'#fff',borderWidth:2,hoverOffset:8}]},options:donutOpts(true,true)});
+    if(brandRevMonthE.length) mkChart('chBrandMonth',{type:'doughnut',data:{labels:brandRevMonthE.map(e=>e[0]),datasets:[{data:brandRevMonthE.map(e=>e[1]),backgroundColor:brandRevMonthE.map(e=>brandColor(e[0])),borderColor:'#fff',borderWidth:2,hoverOffset:8}]},options:donutOpts(true,true)});
     const dc={}; saleList().forEach(s=>dc[s.delivery]=(dc[s.delivery]||0)+1);
     const dE=DELIVERIES.filter(d=>dc[d]).map(d=>[d,dc[d]]);
-    mkChart('chDelivery',{type:'doughnut',data:{labels:dE.map(e=>tr(e[0])),datasets:[{data:dE.map(e=>e[1]),backgroundColor:['#2a78d6','#1baf7a','#eda100','#e87ba4'],borderColor:'#fff',borderWidth:2}]},options:donutOpts(false)});
+    mkChart('chDelivery',{type:'doughnut',data:{labels:dE.map(e=>tr(e[0])),datasets:[{data:dE.map(e=>e[1]),backgroundColor:['#2a78d6','#1baf7a','#eda100','#e87ba4'],borderColor:'#fff',borderWidth:2,hoverOffset:8}]},options:donutOpts(false,true)});
   }else{
     const myRev=m6.map(m=>myScope(DB.revenues).filter(r=>ymKey(r.date)===m).reduce((a,r)=>a+r.amount,0));
     mkChart('chRevOnly',{type:'line',data:{labels,datasets:[{label:tr('My revenue'),data:myRev,borderColor:'#1baf7a',backgroundColor:grad('#1baf7a'),fill:true,tension:.35,borderWidth:2,pointRadius:3.5,pointBackgroundColor:'#1baf7a',pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:lineOpts()});
@@ -798,7 +851,7 @@ function renderLedger(){
     <td><span class="tag">${r.category}</span></td>
     <td>${r.payment?`<span class="pill ${r.payment.toLowerCase()}">${r.payment}</span>`:'<span class="muted">—</span>'}</td>
     <td class="num" style="font-weight:600;color:${r.type==='revenue'?'#067a06':'#c42f2f'}">${r.type==='revenue'?'+':'−'}${fmt(r.amount)}</td>
-    <td class="num">${canDel?`<button class="btn ghost sm danger" title="Delete" onclick="delRow('${r.kind}','${r.ref.id}')">${trash()}</button>`:''}</td>
+    <td class="num">${canDel&&!(r.kind==='expense'&&r.ref.inventoryId)?`<button class="btn ghost sm danger" title="Delete" onclick="delRow('${r.kind}','${r.ref.id}')">${trash()}</button>`:''}</td>
   </tr>`).join('');
   trEl('ledgerBody');
 }
@@ -815,57 +868,112 @@ function clearFilters(){ ['fSearch','fBrand','fDelivery','fFrom','fTo'].forEach(
 /* ============================================================
    VIEW: INVENTORY
    ============================================================ */
-let invFilter='';
+/* Inventory is shown as a month-end snapshot: a piece counts as "in stock" at a date when it
+   was purchased on/before that date and was not yet sold (sale date after it, or unsold). */
+function monthEnd(ym){ const [y,m]=ym.split('-').map(Number); return localISO(new Date(y,m,0)); }
+function invSoldDate(i){ const s=coScope(DB.sales).filter(x=>x.inventoryId===i.id).map(x=>x.date).sort()[0]; return s||null; }
+function invCutoff(ym){ const end=monthEnd(ym), t=today(); return end<t?end:t; }
+function invStockAt(date){
+  return invList().filter(i=>{
+    if(!i.purchaseDate||i.purchaseDate>date) return false;
+    const sd=invSoldDate(i);
+    if(sd) return sd>date;
+    return i.status!=='Sold'; // marked sold without a sale record → not in stock
+  });
+}
+function daysBetween(a,b){ const [y1,m1,d1]=a.split('-').map(Number),[y2,m2,d2]=b.split('-').map(Number); return Math.max(0,Math.round((Date.UTC(y2,m2-1,d2)-Date.UTC(y1,m1-1,d1))/864e5)); }
+function invMonths(){
+  const dates=invList().map(i=>i.purchaseDate).filter(Boolean).sort(); const now=new Date(), arr=[];
+  let d=new Date(now.getFullYear(),now.getMonth(),1);
+  const first=dates.length?new Date(+dates[0].slice(0,4),+dates[0].slice(5,7)-1,1):d;
+  while(d>=first){ arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); d=new Date(d.getFullYear(),d.getMonth()-1,1); }
+  return arr; // newest first
+}
+function unitWord(n,w){ const W={piece:['piece','pieces','pieza','piezas'],day:['day','days','día','días']}[w]; return W[(lang==='es'?2:0)+(n===1?0:1)]; }
+// status shown as it was on the snapshot date (a piece sold later was still available then)
+function invStatusAt(i){ return invSoldDate(i)||i.status==='Sold' ? 'Available' : i.status; }
+function isCurrentMonth(ym){ return ym===today().slice(0,7); }
 function viewInventory(){
   const c=activeCompany(); if(!c) return emptyState('No company selected','Pick or create a company first.','shield');
-  return `<div class="section-head" style="margin-top:2px"><div><h2>${pLabel()} inventory</h2><div class="desc">Manage stock, purchase cost and status</div></div>
-    <div style="display:flex;gap:10px"><button class="btn" onclick="exportInventory()">${download()}Export</button><button class="btn primary" onclick="openInv()">${plus()}Add ${pLabel()}</button></div></div>
-  <div class="grid charts-row" id="invCharts"></div>
+  const months=invMonths();
+  return `<div class="section-head" style="margin-top:2px"><div><h2>${pLabel()} inventory</h2><div class="desc" id="invDesc">Manage stock, purchase cost and status</div></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><select class="input" id="invMonth" style="height:38px" onchange="POST.inventory()">${months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('')}</select>
+    <button class="btn" onclick="exportInventory()">${download()}Export</button><button class="btn primary" onclick="openInv()">${plus()}Add ${pLabel()}</button></div></div>
+  <div class="grid charts-row3" id="invCharts"></div>
   <div class="card table-card" style="margin-top:18px">
-    <div class="table-tools"><div class="field">${searchIcon()}<input class="input search" id="invSearch" placeholder="Search model, SKU, brand…" oninput="renderInv()"></div>
-      <select class="input" id="invStatus" onchange="renderInv()"><option value="">All status</option><option value="Available">Available</option><option value="Reserved">Reserved</option><option value="Sold">Sold</option></select><div class="spacer"></div></div>
-    <div class="tbl-scroll"><table><thead><tr><th>Brand</th><th>Model</th><th>SKU</th><th class="num">Cost (USD)</th><th class="num">Cost (PYG)</th><th class="num">Sell (PYG)</th><th>Status</th><th>Purchased</th><th></th></tr></thead><tbody id="invBody"></tbody></table></div>
+    <div class="table-tools"><b style="font-size:13.5px" id="invTblTitle"></b><div class="field">${searchIcon()}<input class="input search" id="invSearch" placeholder="Search model, SKU, brand…" oninput="renderInv()"></div>
+      <select class="input" id="invStatus" onchange="renderInv()"><option value="">All status</option><option value="Available">Available</option><option value="Reserved">Reserved</option></select><div class="spacer"></div></div>
+    <div class="tbl-scroll"><table><thead><tr><th>Brand</th><th>Model</th><th>SKU</th><th class="num">Cost (USD)</th><th class="num">Cost (PYG)</th><th class="num">Sell (PYG)</th><th>Status</th><th>Purchased</th><th class="num">Days in stock</th><th></th></tr></thead><tbody id="invBody"></tbody></table></div>
   </div>`;
 }
-POST.inventory=()=>{ renderInvCharts(); renderInv(); };
+POST.inventory=()=>{
+  const ym=val('invMonth')||today().slice(0,7);
+  const cur=isCurrentMonth(ym);
+  document.getElementById('invDesc').textContent=tr(cur?'Available pieces as of today':'Available pieces at month end')+' · '+(cur?fmtDate(today()):fmtDate(monthEnd(ym)));
+  document.getElementById('invTblTitle').textContent=tr(cur?'In stock today':'In stock at month end')+(cur?'':' '+monthLabel(ym));
+  renderInvCharts(); renderInv();
+};
+function brandAgg(items){
+  const m={}; items.forEach(i=>{ const b=i.brand||'—'; if(!m[b])m[b]={qty:0,cost:0,sell:0}; m[b].qty++; m[b].cost+=(+i.purchasePYG||0); m[b].sell+=(+i.sellPrice||0); });
+  return m;
+}
 function renderInvCharts(){
-  const inv=invList();
-  const byBrandQty={}, byBrandVal={};
-  inv.forEach(i=>{ byBrandQty[i.brand]=(byBrandQty[i.brand]||0)+1; byBrandVal[i.brand]=(byBrandVal[i.brand]||0)+i.sellPrice; });
-  const qE=Object.entries(byBrandQty).sort((a,b)=>b[1]-a[1]), vE=Object.entries(byBrandVal).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('invCharts').innerHTML=`
-    <div class="card chart-card"><h3>Inventory by Brand</h3><div class="ch-sub">Quantity share</div><div class="chart-wrap sm"><canvas id="chInvQty"></canvas></div></div>
-    <div class="card chart-card"><h3>Inventory Value by Brand</h3><div class="ch-sub">Based on selling prices · PYG</div><div class="chart-wrap sm"><canvas id="chInvVal"></canvas></div></div>`;
-  trEl('invCharts');
-  mkChart('chInvQty',{type:'doughnut',data:{labels:qE.map(e=>e[0]),datasets:[{data:qE.map(e=>e[1]),backgroundColor:SERIES,borderColor:'#fff',borderWidth:2}]},options:donutOpts(false)});
-  mkChart('chInvVal',{type:'doughnut',data:{labels:vE.map(e=>e[0]),datasets:[{data:vE.map(e=>e[1]),backgroundColor:SERIES,borderColor:'#fff',borderWidth:2}]},options:donutOpts(true)});
+  const ym=val('invMonth')||today().slice(0,7);
+  const stock=invStockAt(invCutoff(ym)); const agg=brandAgg(stock);
+  const tQ=stock.length, tC=stock.reduce((a,i)=>a+(+i.purchasePYG||0),0), tS=stock.reduce((a,i)=>a+(+i.sellPrice||0),0);
+  const card=(id,title,total)=>`<div class="card chart-card"><h3>${title}</h3><div class="chart-total">${total}</div><div class="chart-wrap md">${tQ?`<canvas id="${id}"></canvas>`:'<div class="empty">No stock at this date</div>'}</div></div>`;
+  document.getElementById('invCharts').innerHTML=tr(
+    card('chInvQty','Stock by Brand',`${tQ} ${unitWord(tQ,'piece')}`)+
+    card('chInvCost','Stock Value at Cost',fmt(tC))+
+    card('chInvVal','Stock Value at Sale Price',fmt(tS)));
+  if(!tQ) return;
+  const order=Object.entries(agg).sort((a,b)=>b[1].sell-a[1].sell).map(x=>x[0]); // same colour per brand in all 3 charts
+  const draw=(id,key,money)=>{ const e=Object.entries(agg).map(([b,v])=>[b,v[key]]).sort((a,b)=>b[1]-a[1]);
+    mkChart(id,{type:'doughnut',data:{labels:e.map(x=>x[0]),datasets:[{data:e.map(x=>x[1]),backgroundColor:e.map(x=>SERIES[order.indexOf(x[0])%SERIES.length]),borderColor:'#fff',borderWidth:2,hoverOffset:8}]},options:donutOpts(money,true)}); };
+  draw('chInvQty','qty',false); draw('chInvCost','cost',true); draw('chInvVal','sell',true);
 }
 function renderInv(){
+  const ym=val('invMonth')||today().slice(0,7); const cut=invCutoff(ym);
   const q=(val('invSearch')||'').toLowerCase(), st=val('invStatus');
-  let inv=invList().filter(i=>(!st||i.status===st)&&(!q||`${i.brand} ${i.model} ${i.sku}`.toLowerCase().includes(q))).sort((a,b)=>b.purchaseDate.localeCompare(a.purchaseDate));
+  let inv=invStockAt(cut).filter(i=>(!st||invStatusAt(i)===st)&&(!q||`${i.brand} ${i.model} ${i.sku}`.toLowerCase().includes(q))).sort((a,b)=>a.purchaseDate.localeCompare(b.purchaseDate));
   const body=document.getElementById('invBody');
-  if(!inv.length){ body.innerHTML=tr(`<tr><td colspan="9"><div class="empty"><div class="big">No ${pPlural().toLowerCase()}</div>Add your first item to build inventory.</div></td></tr>`); return; }
-  body.innerHTML=inv.map(i=>`<tr>
+  if(!inv.length){ body.innerHTML=tr(`<tr><td colspan="10"><div class="empty"><div class="big">No ${pPlural().toLowerCase()}</div>Add your first item to build inventory.</div></td></tr>`); return; }
+  body.innerHTML=inv.map(i=>{ const d=daysBetween(i.purchaseDate,cut); const cls=d>=90?'hot':d>=45?'warm':'';
+    const sold=!!invSoldDate(i), stAt=invStatusAt(i);
+    return `<tr>
     <td style="font-weight:600">${i.brand}</td><td>${i.model}</td><td class="muted mono">${i.sku}</td>
     <td class="num mono">${fmtUsd(i.purchaseUSD)}</td><td class="num mono">${fmt(i.purchasePYG)}</td><td class="num mono" style="font-weight:600">${fmt(i.sellPrice)}</td>
-    <td><span class="pill ${i.status.toLowerCase()}">${i.status}</span></td><td class="mono">${fmtDate(i.purchaseDate)}</td>
-    <td class="num">${i.status!=='Sold'?`<button class="btn ghost sm danger" onclick="delInv('${i.id}')">${trash()}</button>`:''}</td></tr>`).join('');
+    <td><span class="pill ${stAt.toLowerCase()}">${stAt}</span></td><td class="mono">${fmtDate(i.purchaseDate)}</td>
+    <td class="num"><span class="days-badge ${cls}">${d} ${unitWord(d,'day')}</span></td>
+    <td class="num">${i.status!=='Sold'&&!sold?`<button class="btn ghost sm danger" onclick="delInv('${i.id}')">${trash()}</button>`:''}</td></tr>`; }).join('');
   trEl('invBody');
 }
-async function delInv(id){ try{ await apiReq('DELETE','/api/inventory/'+id); await reload(); toast('Item removed'); }catch(e){ toast(apiErr(e),'warn'); } }
+async function delInv(id){
+  const it=DB.inventory.find(i=>i.id===id);
+  if(!confirmDel(it?`${it.brand} ${it.model}`:'')) return;
+  try{ await apiReq('DELETE','/api/inventory/'+id); await reload(); toast('Item removed'); }catch(e){ toast(apiErr(e),'warn'); } }
 function exportInventory(){
-  const inv=invList();
+  const ym=val('invMonth')||today().slice(0,7); const cur=isCurrentMonth(ym); const cut=invCutoff(ym);
+  const inv=invStockAt(cut).sort((a,b)=>a.purchaseDate.localeCompare(b.purchaseDate)); const agg=brandAgg(inv);
+  const tC=inv.reduce((a,i)=>a+(+i.purchasePYG||0),0), tS=inv.reduce((a,i)=>a+(+i.sellPrice||0),0);
+  const pct=(v,t)=>(t?(v/t*100).toFixed(1):'0.0')+'%';
+  const label=cur?`${tr('Snapshot as of')} ${fmtDate(cut)}`:`${tr('Closing snapshot')} · ${monthLabel(ym)} (${fmtDate(cut)})`;
+  const slug=activeCompany().name.toLowerCase().replace(/\s/g,'-');
   const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'pt',format:'a4'}); const W=doc.internal.pageSize.getWidth();
   doc.setFillColor(42,120,214); doc.rect(0,0,W,80,'F'); doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(19); doc.text(activeCompany().name,40,40);
-  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.text(tr('Inventory Report'),40,60); doc.setFontSize(9); doc.text(tr('Generated ')+today(),W-40,40,{align:'right'});
-  doc.autoTable({startY:100,head:[[tr('Brand'),tr('Model'),'SKU',tr('Cost USD'),tr('Cost PYG'),tr('Sell PYG'),tr('Status'),tr('Purchased')]],
-    body:inv.map(i=>[i.brand,i.model,i.sku,fmtUsd(i.purchaseUSD),fmtPdf(i.purchasePYG),fmtPdf(i.sellPrice),i.status,fmtDate(i.purchaseDate)]),
-    theme:'grid',headStyles:{fillColor:[42,120,214],fontSize:8.5},bodyStyles:{fontSize:8},margin:{left:40,right:40},columnStyles:{3:{halign:'right'},4:{halign:'right'},5:{halign:'right'}}});
-  doc.save(`inventory-${activeCompany().name.toLowerCase().replace(/\s/g,'-')}.pdf`);
-  // also CSV
-  const csv=['Brand,Model,SKU,Cost USD,FX Rate,Cost PYG,Sell PYG,Status,Purchase Date',
-    ...inv.map(i=>[i.brand,i.model,i.sku,i.purchaseUSD,i.fxRate,i.purchasePYG,i.sellPrice,i.status,i.purchaseDate].join(','))].join('\n');
-  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download=`inventory-${activeCompany().name.toLowerCase().replace(/\s/g,'-')}.csv`; a.click();
+  doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.text(tr('Inventory Report')+' — '+label,40,60); doc.setFontSize(9); doc.text(tr('Generated ')+fmtDate(today()),W-40,40,{align:'right'});
+  doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text(tr('Summary by brand'),40,108);
+  const sum=Object.entries(agg).sort((a,b)=>b[1].sell-a[1].sell).map(([b,v])=>[b,String(v.qty),pct(v.qty,inv.length),fmtPdf(v.cost),pct(v.cost,tC),fmtPdf(v.sell),pct(v.sell,tS)]);
+  sum.push([{content:'Total',styles:{fontStyle:'bold'}},{content:String(inv.length),styles:{fontStyle:'bold'}},'100%',{content:fmtPdf(tC),styles:{fontStyle:'bold'}},'100%',{content:fmtPdf(tS),styles:{fontStyle:'bold'}},'100%']);
+  doc.autoTable({startY:116,head:[[tr('Brand'),tr('Qty'),'%',tr('Cost value'),'%',tr('Sale value'),'%']],body:sum,theme:'grid',headStyles:{fillColor:[42,120,214],fontSize:8.5},bodyStyles:{fontSize:8.5},margin:{left:40,right:40},columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}});
+  doc.autoTable({startY:doc.lastAutoTable.finalY+22,head:[[tr('Brand'),tr('Model'),'SKU',tr('Cost USD'),tr('Cost PYG'),tr('Sell PYG'),tr('Purchased'),tr('Days in stock')]],
+    body:inv.map(i=>[i.brand,i.model,i.sku,fmtUsd(i.purchaseUSD),fmtPdf(i.purchasePYG),fmtPdf(i.sellPrice),fmtDate(i.purchaseDate),String(daysBetween(i.purchaseDate,cut))]),
+    theme:'grid',headStyles:{fillColor:[60,60,60],fontSize:8.5},bodyStyles:{fontSize:8},margin:{left:40,right:40},columnStyles:{3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},7:{halign:'right'}}});
+  doc.save(`inventory-${slug}-${ym}.pdf`);
+  const esc=v=>{ const t=String(v??''); return /[",\n]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t; };
+  const csv=['Brand,Model,SKU,Cost USD,FX Rate,Cost PYG,Sell PYG,Status,Purchase Date,Days in stock,Snapshot date',
+    ...inv.map(i=>[i.brand,i.model,i.sku,i.purchaseUSD,i.fxRate,i.purchasePYG,i.sellPrice,invStatusAt(i),i.purchaseDate,daysBetween(i.purchaseDate,cut),cut].map(esc).join(','))].join('\n');
+  const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download=`inventory-${slug}-${ym}.csv`; a.click();
   toast('Inventory exported (PDF + CSV)');
 }
 
@@ -878,7 +986,7 @@ function viewClients(){
   return `<div class="section-head" style="margin-top:2px"><div><h2>Clients</h2><div class="desc">${scopeNote} · recurring buyers & credit statements</div></div>
     <button class="btn primary" onclick="openClient()">${plus()}New Client</button></div>
   <div class="card table-card"><div class="table-tools"><div class="field">${searchIcon()}<input class="input search" id="clSearch" placeholder="Search client…" oninput="renderClients()"></div><div class="spacer"></div></div>
-    <div class="tbl-scroll"><table><thead><tr><th>Client</th><th>Contact</th><th>Agent</th><th class="num">Purchases</th><th class="num">Total spent</th><th class="num">Credit balance</th><th></th></tr></thead><tbody id="clBody"></tbody></table></div></div>`;
+    <div class="tbl-scroll"><table><thead><tr><th>Client</th><th>Contact</th><th>Agent</th><th class="num">Purchases</th><th class="num">Total spent</th><th class="num">Paid</th><th class="num">Credit balance</th><th></th></tr></thead><tbody id="clBody"></tbody></table></div></div>`;
 }
 POST.clients=()=>renderClients();
 function agentName(id){ const u=DB.users.find(x=>x.id===id); return u?u.name:'—'; }
@@ -886,31 +994,46 @@ function renderClients(){
   const q=(val('clSearch')||'').toLowerCase();
   let cls=myScope(DB.clients).filter(c=>!q||c.name.toLowerCase().includes(q)).sort((a,b)=>clientTotal(b.id)-clientTotal(a.id));
   const body=document.getElementById('clBody');
-  if(!cls.length){ body.innerHTML=tr(`<tr><td colspan="7"><div class="empty"><div class="big">No clients yet</div>Create a client to track recurring purchases and credit.</div></td></tr>`); return; }
+  if(!cls.length){ body.innerHTML=tr(`<tr><td colspan="8"><div class="empty"><div class="big">No clients yet</div>Create a client to track recurring purchases and credit.</div></td></tr>`); return; }
   body.innerHTML=cls.map(c=>{ const bal=clientBalance(c.id), cnt=coScope(DB.sales).filter(s=>s.clientId===c.id).length;
     return `<tr style="cursor:pointer" onclick="openStatement('${c.id}')">
       <td><div class="row-flex"><span class="avatar" style="background:${avColor(c.name)}">${initials(c.name)}</span><b>${c.name}</b></div></td>
       <td class="muted">${c.phone||''}</td><td class="muted">${agentName(c.agentId)}</td>
       <td class="num">${cnt}</td><td class="num mono" style="font-weight:600">${fmt(clientTotal(c.id))}</td>
+      <td class="num mono muted">${clientPaid(c.id)>0?fmt(clientPaid(c.id)):'—'}</td>
       <td class="num mono" style="font-weight:600;color:${bal>0?'#c98500':'#898781'}">${bal>0?fmt(bal):'—'}</td>
       <td class="num"><button class="btn ghost sm" onclick="event.stopPropagation();openStatement('${c.id}')">Statement →</button></td></tr>`;}).join('');
   trEl('clBody');
 }
 function openStatement(cid){
-  const c=DB.clients.find(x=>x.id===cid);
+  const c=DB.clients.find(x=>x.id===cid); if(!c) return;
   const purchases=coScope(DB.sales).filter(s=>s.clientId===cid).sort((a,b)=>b.date.localeCompare(a.date));
-  const total=clientTotal(cid), credit=clientBalance(cid);
+  const total=clientTotal(cid), credit=clientBalance(cid), paid=clientPaid(cid), creditSold=clientCreditSold(cid);
+  const pays=[...clientPayments(cid)].sort((a,b)=>b.date.localeCompare(a.date)||String(b.createdAt).localeCompare(String(a.createdAt)));
   // monthly totals
   const byMonth={}; purchases.forEach(s=>byMonth[ymKey(s.date)]=(byMonth[ymKey(s.date)]||0)+s.price);
   const monthsHtml=Object.entries(byMonth).sort((a,b)=>b[0].localeCompare(a[0])).map(([m,v])=>`<tr><td>${monthLabel(m)}</td><td class="num mono">${fmt(v)}</td></tr>`).join('')||'<tr><td class="muted" colspan="2">No purchases</td></tr>';
   const rows=purchases.map(s=>`<tr><td class="mono">${fmtDate(s.date)}</td><td>${s.brand} ${s.model}</td><td>${s.payment?`<span class="pill ${s.payment.toLowerCase()}">${s.payment}</span>`:''}</td><td class="num mono">${fmt(s.price)}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">No purchases yet</td></tr>';
-  showModalHTML(`<div class="modal wide">
+  const payRows=pays.map(p=>`<tr><td class="mono">${fmtDate(p.date)}</td><td class="muted">${p.note?escHtml(p.note):'—'}</td><td class="num mono" style="font-weight:600;color:#067a06">${fmt(p.amount)}</td><td class="num"><button class="btn ghost sm danger" title="Delete" onclick="delPayment('${p.id}','${cid}')">${trash()}</button></td></tr>`).join('')||'<tr><td colspan="4" class="muted">No payments yet</td></tr>';
+  const payForm=credit>0?`<div class="pay-form">
+      <div class="fg"><label>Payment date <span class="req">*</span></label><input type="date" id="p_date" value="${today()}"></div>
+      <div class="fg"><label>Amount paid <span class="req">*</span></label><input id="p_amount" inputmode="numeric" placeholder="${Math.round(credit).toLocaleString('es-PY')}"></div>
+      <div class="fg"><label>Note <span class="muted" style="font-weight:400">(optional)</span></label><input id="p_note" placeholder="e.g. transfer, cash…"></div>
+      <button class="btn primary" style="height:40px" onclick="savePayment('${cid}')">${plus()}Register payment</button></div>`
+    :`<div class="hint" style="margin-top:8px">This client has no pending credit balance.</div>`;
+  showModalHTML(`<div class="modal wide" style="max-width:760px">
     <div class="modal-head"><div class="row-flex"><span class="avatar" style="width:44px;height:44px;border-radius:12px;font-size:15px;background:${avColor(c.name)}">${initials(c.name)}</span><div><h3>${c.name}</h3><p>${c.phone||''} ${c.email?'· '+c.email:''} · Agent: ${agentName(c.agentId)}</p></div></div><button class="x" onclick="closeModal()">${xIcon()}</button></div>
     <div class="modal-body">
-      <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
-        <div class="card rs" style="padding:14px 16px"><div class="lbl">Total spent</div><div class="val" style="font-size:20px">${fmt(total)}</div></div>
-        <div class="card rs" style="padding:14px 16px"><div class="lbl">Purchases</div><div class="val" style="font-size:20px">${purchases.length}</div></div>
-        <div class="card rs" style="padding:14px 16px;border-top:3px solid ${credit>0?'#c98500':'#e1e0d9'}"><div class="lbl">Credit balance</div><div class="val" style="font-size:20px;color:${credit>0?'#c98500':'inherit'}">${fmt(credit)}</div></div>
+      <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+        <div class="card rs" style="padding:14px 16px"><div class="lbl">Total spent</div><div class="val" style="font-size:19px">${fmt(total)}</div><div class="hint">${purchases.length} · Purchases</div></div>
+        <div class="card rs" style="padding:14px 16px"><div class="lbl">Credit sold</div><div class="val" style="font-size:19px">${fmt(creditSold)}</div></div>
+        <div class="card rs" style="padding:14px 16px;border-top:3px solid #1baf7a"><div class="lbl">Paid</div><div class="val" style="font-size:19px;color:#067a06">${fmt(paid)}</div></div>
+        <div class="card rs" style="padding:14px 16px;border-top:3px solid ${credit>0?'#c98500':'#e1e0d9'}"><div class="lbl">Credit balance</div><div class="val" style="font-size:19px;color:${credit>0?'#c98500':'inherit'}">${fmt(credit)}</div></div>
+      </div>
+      <div style="margin-bottom:18px"><div style="font-size:13px;font-weight:600">Client payments</div>
+        <div class="hint" style="margin-bottom:8px">Payments only reduce this client's credit balance; the revenue was recorded with the credit sale.</div>
+        <div class="card table-card"><div class="tbl-scroll" style="max-height:220px;overflow-y:auto"><table><thead><tr><th>Date</th><th>Note</th><th class="num">Amount</th><th></th></tr></thead><tbody>${payRows}</tbody></table></div></div>
+        ${payForm}
       </div>
       <div class="grid" style="grid-template-columns:1.4fr 1fr;gap:16px">
         <div><div style="font-size:13px;font-weight:600;margin-bottom:8px">Purchase history</div><div class="card table-card"><div class="tbl-scroll"><table><thead><tr><th>Date</th><th>${pLabel()}</th><th>Pay</th><th class="num">Amount</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>
@@ -919,6 +1042,21 @@ function openStatement(cid){
     </div>
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Close</button><button class="btn primary" onclick="closeModal();openSale('${cid}')">${plus()}New sale for client</button></div>
   </div>`);
+}
+function confirmDel(what){ return confirm(lang==='es'?`¿Eliminar ${what}?`:`Delete ${what}?`); }
+function escHtml(t){ return String(t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+async function savePayment(cid){
+  const amt=parseInt2(val('p_amount')); const date=val('p_date');
+  if(amt<=0||!date){ if(amt<=0)document.getElementById('p_amount').classList.add('err'); toast('Enter an amount','warn'); return; }
+  try{
+    await apiReq('POST','/api/payments',{companyId:activeCompanyId(),clientId:cid,amount:amt,date,note:val('p_note').trim()});
+    await reload(); openStatement(cid); toast('Payment registered');
+  }catch(e){ toast(apiErr(e),'warn'); }
+}
+async function delPayment(id,cid){
+  const p=DB.payments.find(x=>x.id===id); if(!confirmDel(p?fmt(p.amount):'')) return;
+  try{ await apiReq('DELETE','/api/payments/'+id); await reload(); openStatement(cid); toast('Payment removed'); }
+  catch(e){ toast(apiErr(e),'warn'); }
 }
 
 /* ============================================================
@@ -1217,7 +1355,7 @@ if(window.Chart){ Chart.defaults.font.family="system-ui,-apple-system,'Segoe UI'
 const gridClr='#e1e0d9', money2Tick=v=>fmtShort(v);
 function barOpts(){return{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'end',labels:{boxWidth:9,boxHeight:9,usePointStyle:true,pointStyle:'circle',padding:14,font:{size:11.5}}},tooltip:tt()},scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:gridClr},border:{display:false},ticks:{callback:money2Tick},beginAtZero:true}}};}
 function lineOpts(){return{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{display:false},tooltip:tt()},scales:{x:{grid:{display:false},border:{display:false}},y:{grid:{color:gridClr},border:{display:false},ticks:{callback:money2Tick}}}};}
-function donutOpts(money){return{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right',labels:{boxWidth:9,boxHeight:9,usePointStyle:true,pointStyle:'circle',padding:11,font:{size:11.5}}},tooltip:{...tt(),callbacks:{label:c=>{const tot=c.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(c.parsed/tot*100).toFixed(1):0;return ` ${c.label}: ${money?fmt(c.parsed):c.parsed} (${pct}%)`;}}}}};}
+function donutOpts(money,bottom){return{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:bottom?'bottom':'right',labels:{boxWidth:9,boxHeight:9,usePointStyle:true,pointStyle:'circle',padding:11,font:{size:11.5}}},tooltip:{...tt(),callbacks:{label:c=>{const tot=c.dataset.data.reduce((a,b)=>a+b,0);const pct=tot?(c.parsed/tot*100).toFixed(1):0;return ` ${c.label}: ${money?fmt(c.parsed):c.parsed} (${pct}%)`;}}}}};}
 function tt(){return{backgroundColor:'#0b0b0b',padding:11,cornerRadius:9,titleFont:{size:12,weight:'600'},bodyFont:{size:12},boxPadding:5,usePointStyle:true,callbacks:{label:c=>` ${c.dataset.label||c.label}: ${fmt(c.parsed.y!=null?c.parsed.y:c.parsed)}`}};}
 function grad(hex){return c=>{const{ctx,chartArea}=c.chart;if(!chartArea)return hex+'22';const g=ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom);g.addColorStop(0,hex+'33');g.addColorStop(1,hex+'02');return g;};}
 
@@ -1255,7 +1393,7 @@ let toastT; function toast(msg,kind){ const t=document.getElementById('toast'); 
 
 /* ---------- init ---------- */
 document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay')closeModal(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeModal(); if(e.key==='Enter'&&!document.getElementById('login').classList.contains('hidden'))doLogin(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape')closeModal();  });
 try{ const sv=localStorage.getItem('bf_lang'); if(sv) lang=sv; }catch(e){}
 applyI18n();
 (async()=>{
