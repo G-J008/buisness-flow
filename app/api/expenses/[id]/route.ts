@@ -11,6 +11,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   if (!e) return bad('not found');
   const companyId = await resolveCompanyId(s, e.companyId);
   if (companyId !== e.companyId) return forbidden();
+  if (e.inventoryId) return bad('this expense comes from an inventory item — delete the item instead');
   await deleteExpense(e.id);
   return json({ ok: true });
 }
