@@ -96,9 +96,22 @@ export async function createInventory(d: any) {
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
     [id, d.companyId, d.brand, d.model, d.sku, d.purchaseUSD, d.fxRate, d.purchasePYG, d.sellPrice, d.status, d.purchaseDate]
   );
+  // The purchase cost is recorded once, automatically, as an expense in the business flow.
+  if (Number(d.purchasePYG) > 0) {
+    await createExpense({
+      companyId: d.companyId,
+      date: d.purchaseDate,
+      amount: Number(d.purchasePYG),
+      category: 'Inventory Purchase',
+      description: `${d.brand} ${d.model} (${d.sku})`,
+      inventoryId: id,
+    });
+  }
   return getInventory(id);
 }
 export async function deleteInventory(id: string) {
+  // Only the expense created automatically for this item is removed with it.
+  await q('DELETE FROM expense WHERE "inventoryId"=$1', [id]);
   await q('DELETE FROM inventory WHERE id=$1', [id]);
 }
 export async function setInventoryStatus(id: string, status: string) {
@@ -169,9 +182,42 @@ export async function getExpense(id: string) {
 }
 export async function createExpense(d: any) {
   const id = genId();
-  await q('INSERT INTO expense (id,"companyId",date,amount,category,description) VALUES ($1,$2,$3,$4,$5,$6)', [id, d.companyId, d.date, d.amount, d.category, d.description]);
+  await q('INSERT INTO expense (id,"companyId",date,amount,category,description,"inventoryId") VALUES ($1,$2,$3,$4,$5,$6,$7)', [id, d.companyId, d.date, d.amount, d.category, d.description, d.inventoryId || null]);
   return getExpense(id);
 }
 export async function deleteExpense(id: string) {
   await q('DELETE FROM expense WHERE id=$1', [id]);
+}
+
+/* ---------- client payments (affect only the client's credit balance) ---------- */
+export async function getClient(id: string) {
+  return (await q('SELECT * FROM client WHERE id=$1', [id])).rows[0] || null;
+}
+export async function listPayments(companyId: string, agentId?: string) {
+  if (agentId) {
+    return (await q(
+      'SELECT p.* FROM client_payment p JOIN client c ON c.id=p."clientId" WHERE p."companyId"=$1 AND c."agentId"=$2',
+      [companyId, agentId]
+    )).rows;
+  }
+  return (await q('SELECT * FROM client_payment WHERE "companyId"=$1', [companyId])).rows;
+}
+export async function getPayment(id: string) {
+  return (await q('SELECT * FROM client_payment WHERE id=$1', [id])).rows[0] || null;
+}
+export async function clientOutstanding(clientId: string) {
+  const credit = (await q(`SELECT COALESCE(SUM(price),0) AS t FROM sale WHERE "clientId"=$1 AND payment='Credit'`, [clientId])).rows[0];
+  const paid = (await q('SELECT COALESCE(SUM(amount),0) AS t FROM client_payment WHERE "clientId"=$1', [clientId])).rows[0];
+  return Number(credit?.t || 0) - Number(paid?.t || 0);
+}
+export async function createPayment(d: any) {
+  const id = genId();
+  await q(
+    'INSERT INTO client_payment (id,"companyId","clientId","agentId",amount,date,note) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+    [id, d.companyId, d.clientId, d.agentId, d.amount, d.date, d.note]
+  );
+  return getPayment(id);
+}
+export async function deletePayment(id: string) {
+  await q('DELETE FROM client_payment WHERE id=$1', [id]);
 }

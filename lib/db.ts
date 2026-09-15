@@ -1,3 +1,5 @@
+// Schema changes are additive only (CREATE ... IF NOT EXISTS / ADD COLUMN IF NOT EXISTS),
+// so existing business data is never dropped or rewritten.
 // Pure-JS PostgreSQL access. Works with Neon (via `pg`) in production and an
 // in-memory Postgres (`pg-mem`) for local testing when USE_PGMEM=1 is set.
 type AnyPool = { query: (text: string, params?: any[]) => Promise<{ rows: any[] }> };
@@ -25,6 +27,8 @@ CREATE TABLE IF NOT EXISTS client (id TEXT PRIMARY KEY, "companyId" TEXT NOT NUL
 CREATE TABLE IF NOT EXISTS sale (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "agentId" TEXT, "inventoryId" TEXT, brand TEXT, model TEXT, price DOUBLE PRECISION, delivery TEXT, "clientId" TEXT, payment TEXT, date TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS expense (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, date TEXT, amount DOUBLE PRECISION, category TEXT, description TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS revenue (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, date TEXT, amount DOUBLE PRECISION, category TEXT, description TEXT, "saleId" TEXT, brand TEXT, model TEXT, delivery TEXT, "agentId" TEXT, "clientId" TEXT, payment TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS client_payment (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "clientId" TEXT NOT NULL, "agentId" TEXT, amount DOUBLE PRECISION NOT NULL DEFAULT 0, date TEXT, note TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE expense ADD COLUMN IF NOT EXISTS "inventoryId" TEXT;
 `;
 
 async function ensureSchema(pool: AnyPool) {
