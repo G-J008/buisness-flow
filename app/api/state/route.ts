@@ -1,4 +1,4 @@
-import { ensureAdmin, getUser, listCompanies, listAllUsers, listUsersByCompany, listInventory, listClients, listSales, listRevenues, listExpenses } from '@/lib/store';
+import { ensureAdmin, getUser, listCompanies, listAllUsers, listUsersByCompany, listInventory, listClients, listSales, listRevenues, listExpenses, listPayments } from '@/lib/store';
 import { requireSession, resolveCompanyId, unauthorized, json, pubUser } from '@/lib/api';
 
 export const runtime = 'nodejs';
@@ -22,6 +22,7 @@ export async function GET(req: Request) {
   let sales: any[] = [];
   let expenses: any[] = [];
   let revenues: any[] = [];
+  let payments: any[] = [];
 
   if (s.role === 'admin') users = await listAllUsers();
   else if (activeCompanyId) users = await listUsersByCompany(activeCompanyId);
@@ -32,11 +33,13 @@ export async function GET(req: Request) {
       clients = await listClients(activeCompanyId, s.uid);
       sales = await listSales(activeCompanyId, s.uid);
       revenues = await listRevenues(activeCompanyId, s.uid);
+      payments = await listPayments(activeCompanyId, s.uid);
       expenses = [];
     } else {
       clients = await listClients(activeCompanyId);
       sales = await listSales(activeCompanyId);
       revenues = await listRevenues(activeCompanyId);
+      payments = await listPayments(activeCompanyId);
       expenses = await listExpenses(activeCompanyId);
     }
   }
@@ -51,5 +54,6 @@ export async function GET(req: Request) {
     sales,
     expenses,
     revenues,
+    payments,
   });
 }
