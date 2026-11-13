@@ -84,26 +84,36 @@ export async function updateProfile(id: string, f: { name?: string; avatar?: str
 
 /* ---------- inventory ---------- */
 export async function listInventory(companyId: string) {
-  return (await q('SELECT * FROM inventory WHERE "companyId"=$1', [companyId])).rows;
+  const items = (await q('SELECT * FROM inventory WHERE "companyId"=$1', [companyId])).rows;
+  // Units already sold per item (across every agent), so stock is right for all roles.
+  const sold = (await q('SELECT "inventoryId", SUM(COALESCE(quantity,1)) AS n FROM sale WHERE "companyId"=$1 GROUP BY "inventoryId"', [companyId])).rows;
+  const byItem: Record<string, number> = {};
+  for (const r of sold) if (r.inventoryId) byItem[r.inventoryId] = Number(r.n) || 0;
+  return items.map((i: any) => ({ ...i, quantity: Number(i.quantity) || 1, soldQty: byItem[i.id] || 0 }));
 }
 export async function getInventory(id: string) {
   return (await q('SELECT * FROM inventory WHERE id=$1', [id])).rows[0] || null;
 }
+export async function soldUnits(inventoryId: string) {
+  const { rows } = await q('SELECT COALESCE(SUM(COALESCE(quantity,1)),0) AS n FROM sale WHERE "inventoryId"=$1', [inventoryId]);
+  return Number(rows[0]?.n || 0);
+}
 export async function createInventory(d: any) {
   const id = genId();
+  const quantity = Math.max(1, Math.floor(Number(d.quantity) || 1));
   await q(
-    `INSERT INTO inventory (id,"companyId",brand,model,sku,"purchaseUSD","fxRate","purchasePYG","sellPrice",status,"purchaseDate")
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-    [id, d.companyId, d.brand, d.model, d.sku, d.purchaseUSD, d.fxRate, d.purchasePYG, d.sellPrice, d.status, d.purchaseDate]
+    `INSERT INTO inventory (id,"companyId",brand,model,sku,"purchaseUSD","fxRate","purchasePYG","sellPrice",status,"purchaseDate",quantity)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    [id, d.companyId, d.brand, d.model, d.sku, d.purchaseUSD, d.fxRate, d.purchasePYG, d.sellPrice, d.status, d.purchaseDate, quantity]
   );
-  // The purchase cost is recorded once, automatically, as an expense in the business flow.
+  // The purchase cost (unit cost x units) is recorded once, automatically, as an expense in the business flow.
   if (Number(d.purchasePYG) > 0) {
     await createExpense({
       companyId: d.companyId,
       date: d.purchaseDate,
-      amount: Number(d.purchasePYG),
+      amount: Number(d.purchasePYG) * quantity,
       category: 'Inventory Purchase',
-      description: `${d.brand} ${d.model} (${d.sku})`,
+      description: `${d.brand} ${d.model} (${d.sku})${quantity > 1 ? ' x' + quantity : ''}`,
       inventoryId: id,
     });
   }
@@ -139,23 +149,31 @@ export async function getSale(id: string) {
 }
 export async function createSaleWithRevenue(d: any, inv: any) {
   const saleId = genId();
+  const quantity = Math.max(1, Math.floor(Number(d.quantity) || 1));
+  const total = Number(d.unitPrice) * quantity;
+  // The unit cost is frozen on the sale so profit stays correct even if the item changes later.
   await q(
-    `INSERT INTO sale (id,"companyId","agentId","inventoryId",brand,model,price,delivery,"clientId",payment,date)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
-    [saleId, d.companyId, d.agentId, inv.id, inv.brand, inv.model, d.price, d.delivery, d.clientId, d.payment, d.date]
+    `INSERT INTO sale (id,"companyId","agentId","inventoryId",brand,model,price,delivery,"clientId",payment,date,quantity,"unitCost")
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+    [saleId, d.companyId, d.agentId, inv.id, inv.brand, inv.model, total, d.delivery, d.clientId, d.payment, d.date, quantity, Number(inv.purchasePYG) || 0]
   );
   await q(
     `INSERT INTO revenue (id,"companyId",date,amount,category,description,"saleId",brand,model,delivery,"agentId","clientId",payment)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
-    [genId(), d.companyId, d.date, d.price, 'Product Sales', `${inv.brand} ${inv.model}`, saleId, inv.brand, inv.model, d.delivery, d.agentId, d.clientId, d.payment]
+    [genId(), d.companyId, d.date, total, 'Product Sales', `${inv.brand} ${inv.model}${quantity > 1 ? ' x' + quantity : ''}`, saleId, inv.brand, inv.model, d.delivery, d.agentId, d.clientId, d.payment]
   );
-  await setInventoryStatus(inv.id, 'Sold');
+  // The item is only marked sold once its last unit is gone.
+  const left = (Number(inv.quantity) || 1) - (await soldUnits(inv.id));
+  if (left <= 0) await setInventoryStatus(inv.id, 'Sold');
   return getSale(saleId);
 }
 export async function deleteSaleCascade(sale: any) {
   await q('DELETE FROM revenue WHERE "saleId"=$1', [sale.id]);
-  if (sale.inventoryId) await setInventoryStatus(sale.inventoryId, 'Available');
   await q('DELETE FROM sale WHERE id=$1', [sale.id]);
+  if (sale.inventoryId) {
+    const inv = await getInventory(sale.inventoryId);
+    if (inv && inv.status === 'Sold') await setInventoryStatus(inv.id, 'Available');
+  }
 }
 export async function listRevenues(companyId: string, agentId?: string) {
   if (agentId) return (await q('SELECT * FROM revenue WHERE "companyId"=$1 AND "agentId"=$2', [companyId, agentId])).rows;
