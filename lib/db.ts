@@ -29,6 +29,9 @@ CREATE TABLE IF NOT EXISTS expense (id TEXT PRIMARY KEY, "companyId" TEXT NOT NU
 CREATE TABLE IF NOT EXISTS revenue (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, date TEXT, amount DOUBLE PRECISION, category TEXT, description TEXT, "saleId" TEXT, brand TEXT, model TEXT, delivery TEXT, "agentId" TEXT, "clientId" TEXT, payment TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS client_payment (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "clientId" TEXT NOT NULL, "agentId" TEXT, amount DOUBLE PRECISION NOT NULL DEFAULT 0, date TEXT, note TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
 ALTER TABLE expense ADD COLUMN IF NOT EXISTS "inventoryId" TEXT;
+ALTER TABLE inventory ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+ALTER TABLE sale ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+ALTER TABLE sale ADD COLUMN IF NOT EXISTS "unitCost" DOUBLE PRECISION;
 `;
 
 async function ensureSchema(pool: AnyPool) {

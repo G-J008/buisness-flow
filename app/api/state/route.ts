@@ -35,6 +35,9 @@ export async function GET(req: Request) {
       revenues = await listRevenues(activeCompanyId, s.uid);
       payments = await listPayments(activeCompanyId, s.uid);
       expenses = [];
+      // Sales agents never receive purchase costs or margins.
+      inventory = inventory.map(({ purchaseUSD, fxRate, purchasePYG, ...rest }: any) => rest);
+      sales = sales.map(({ unitCost, ...rest }: any) => rest);
     } else {
       clients = await listClients(activeCompanyId);
       sales = await listSales(activeCompanyId);

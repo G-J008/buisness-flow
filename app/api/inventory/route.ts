@@ -16,6 +16,8 @@ export async function POST(req: Request) {
   const purchaseUSD = Number(b.purchaseUSD) || 0;
   const fxRate = Number(b.fxRate) || 0;
   const sellPrice = Number(b.sellPrice) || 0;
+  const quantity = Math.floor(Number(b.quantity ?? 1));
+  if (!Number.isFinite(quantity) || quantity < 1 || quantity > 100000) return bad('quantity required');
   const item = await createInventory({
     companyId,
     brand,
@@ -25,6 +27,7 @@ export async function POST(req: Request) {
     fxRate,
     purchasePYG: Math.round(purchaseUSD * fxRate),
     sellPrice,
+    quantity,
     status: String(b.status || 'Available'),
     purchaseDate: String(b.purchaseDate || new Date().toISOString().slice(0, 10)),
   });
