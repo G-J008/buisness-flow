@@ -44,3 +44,14 @@ export async function resolveCompanyId(s: Session, requested?: string | null): P
   if (requested && requested !== s.companyId) return null;
   return s.companyId;
 }
+
+// Who is acting, for the caja records (name is stored as it was at that moment).
+export async function actorOf(s: Session) {
+  const { getUser } = await import('./store');
+  const u = await getUser(s.uid);
+  return { id: s.uid, name: (u && u.name) || 'Usuario' };
+}
+// Caja chosen in a form: { cajaId, fxRate }.
+export function linkOf(b: any) {
+  return { cajaId: b && b.cajaId ? String(b.cajaId) : null, fxRate: b && b.cajaFx != null ? Number(b.cajaFx) : null };
+}

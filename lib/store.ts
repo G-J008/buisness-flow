@@ -18,6 +18,10 @@ export async function ensureAdmin() {
   adminEnsured = true;
 }
 
+export async function setPassword(id: string, passwordHash: string) {
+  await q('UPDATE app_user SET "passwordHash"=$1 WHERE id=$2', [passwordHash, id]);
+}
+
 /* ---------- companies ---------- */
 export async function listCompanies() {
   return (await q('SELECT * FROM company ORDER BY "createdAt" ASC')).rows;

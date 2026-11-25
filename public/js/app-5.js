@@ -42,7 +42,7 @@ function viewAdmin(){
     <div class="head-actions"><button class="btn primary" onclick="openCompany()">${plus()}New Company</button></div></div>
   <div class="card table-card"><div class="tbl-scroll"><table class="stack"><thead><tr><th>Company</th><th>Product type</th><th class="num">Users</th><th class="num">Inventory</th><th class="num">Sales</th><th></th></tr></thead><tbody id="adminCoBody"></tbody></table></div></div>
   <div class="section-head"><div><h2>Users & profiles</h2><div class="desc">Create admins, managers and sales agents; assign to a company</div></div>
-    <div class="head-actions"><button class="btn primary" onclick="openUser()">${plus()}New Profile</button></div></div>
+    <div class="head-actions"><button class="btn" onclick="openUser('admin')">${plus()}New master admin</button><button class="btn primary" onclick="openUser()">${plus()}New Profile</button></div></div>
   <div class="card table-card"><div class="tbl-scroll"><table class="stack"><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Company</th><th></th></tr></thead><tbody id="adminUserBody"></tbody></table></div></div>`;
 }
 POST.admin=()=>renderAdmin();
@@ -60,7 +60,7 @@ function renderAdmin(){
     <td class="st-head"><div class="row-flex"><span class="avatar" style="background:${avColor(u.name)}" data-u>${u.avatar?`<img src="${u.avatar}">`:escHtml(initials(u.name))}</span><b data-u>${escHtml(u.name)}</b></div></td>
     <td class="muted" data-label="Username"><i data-u>@${escHtml(u.username)}</i></td><td data-label="Role"><span class="role-badge role-${u.role}" style="display:inline-block" data-u>${roleLabel(u.role)}</span></td>
     <td data-label="Company">${u.companyId?`<i data-u>${escHtml(co?co.name:'—')}</i>`:'<span class="muted">All companies</span>'}</td>
-    <td class="num st-act">${u.id!==session.user.id?`<button class="btn ghost sm danger" aria-label="Delete" onclick="delUser('${u.id}')">${trash()}</button>`:''}</td></tr>`; }).join(''));
+    <td class="num st-act"><span class="row-flex" style="justify-content:flex-end;gap:2px">${u.id!==session.user.id?`<button class="btn ghost sm" onclick="openPwReset('${u.id}')">Reset password</button><button class="btn ghost sm danger" aria-label="Delete" onclick="delUser('${u.id}')">${trash()}</button>`:''}</span></td></tr>`; }).join(''));
 }
 async function delUser(id){ try{ await apiReq('DELETE','/api/users/'+id); await reload(); buildCoSwitch(); toast('Profile removed'); }catch(e){ toast(apiErr(e),'warn'); } }
 
@@ -81,11 +81,29 @@ function viewSettings(){
     <div class="fg"><label>Username</label><input value="${escHtml(u.username)}" disabled style="opacity:.6"></div>
     <div class="fg"><label>Role</label><input value="${roleLabel(u.role)}" disabled style="opacity:.6"></div><div class="fg full"><label>Language</label><div class="lang-mini" id="setLang" style="margin-left:0"><button data-lang="es" class="${lang==='es'?'on':''}" onclick="setLang('es')">Español</button><button data-lang="en" class="${lang==='en'?'on':''}" onclick="setLang('en')">English</button></div></div></div>
     <div style="margin-top:16px"><button class="btn primary" onclick="saveProfile()">Save profile</button></div></div>
+    <div class="card" style="padding:22px;max-width:640px;margin-top:18px"><h3 class="panel-title" style="margin:0 0 2px;font-size:15px">Change password</h3><div class="hint" style="margin-bottom:16px">At least 8 characters</div>
+    <div class="form-grid"><div class="fg full"><label>Current password</label><input type="password" id="pw_cur" autocomplete="current-password"></div>
+    <div class="fg"><label>New password</label><input type="password" id="pw_new" autocomplete="new-password"></div><div class="fg"><label>Repeat new password</label><input type="password" id="pw_new2" autocomplete="new-password"></div></div>
+    <div style="margin-top:16px"><button class="btn primary" onclick="savePassword()">Change password</button></div></div>
     ${companyBlock}`;
 }
 let pendingAvatar=null, pendingLogo=null;
 function previewImg(input,prevId){ const f=input.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ document.getElementById(prevId).innerHTML=`<img src="${e.target.result}">`; if(prevId==='avPrev')pendingAvatar=e.target.result; else pendingLogo=e.target.result; }; r.readAsDataURL(f); }
 async function saveProfile(){ try{ const r=await apiReq('PATCH','/api/profile',{name:val('set_name'),avatar:pendingAvatar!=null?pendingAvatar:undefined}); session.user.name=r.user.name; session.user.avatar=r.user.avatar; pendingAvatar=null; refreshUserCard(); toast('Profile updated'); }catch(e){ toast(apiErr(e),'warn'); } }
+async function savePassword(){
+  const np=val('pw_new'); if(np.length<8){ document.getElementById('pw_new').classList.add('err'); toast('password too short','warn'); return; }
+  if(np!==val('pw_new2')){ document.getElementById('pw_new2').classList.add('err'); toast('The passwords do not match','warn'); return; }
+  try{ await apiReq('PATCH','/api/profile',{currentPassword:val('pw_cur'),newPassword:np}); ['pw_cur','pw_new','pw_new2'].forEach(i=>document.getElementById(i).value=''); toast('Password changed'); }catch(e){ toast(apiErr(e),'warn'); }
+}
+function openPwReset(id){ const u=DB.users.find(x=>x.id===id); if(!u) return;
+  showModalHTML(`<div class="modal"><div class="modal-head"><div><h3>Reset password</h3><p><i data-u>@${escHtml(u.username)}</i> will sign in with the new password.</p></div><button class="x" onclick="closeModal()">${xIcon()}</button></div>
+    <div class="modal-body"><div class="form-grid"><div class="fg"><label>New password <span class="req">*</span></label><input type="password" id="rp_new" autocomplete="new-password"></div><div class="fg"><label>Repeat new password <span class="req">*</span></label><input type="password" id="rp_new2" autocomplete="new-password"></div></div><div class="hint" style="margin-top:8px">At least 8 characters</div></div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="savePwReset('${id}')">Save password</button></div></div>`); }
+async function savePwReset(id){
+  const np=val('rp_new'); if(np.length<8){ document.getElementById('rp_new').classList.add('err'); toast('password too short','warn'); return; }
+  if(np!==val('rp_new2')){ document.getElementById('rp_new2').classList.add('err'); toast('The passwords do not match','warn'); return; }
+  try{ await apiReq('PATCH','/api/users/'+id,{password:np}); closeModal(); toast('Password changed'); }catch(e){ toast(apiErr(e),'warn'); }
+}
 async function saveCompany(){ const c=activeCompany(); try{ await apiReq('PATCH','/api/companies/'+c.id,{name:val('set_coname'),productType:val('set_ptype'),logo:pendingLogo!=null?pendingLogo:undefined}); pendingLogo=null; await loadState(adminCompanyId); refreshBrand(); buildCoSwitch(); toast('Company updated'); go('settings'); }catch(e){ toast(apiErr(e),'warn'); } }
 
 /* ============================================================
@@ -110,10 +128,12 @@ function openSale(presetClient){
       <div class="fg"><label>Sale date <span class="req">*</span></label><input type="date" id="s_date" value="${today()}"></div>
       <div class="fg"><label>Delivery method <span class="req">*</span></label><select id="s_delivery">${DELIVERIES.map(d=>`<option value="${d}">${d}</option>`).join('')}</select></div>
       <div class="fg"><label>Client</label><select id="s_client"><option value="">Walk-in (no client)</option>${clients.map(cl=>`<option data-u value="${cl.id}" ${cl.id===presetClient?'selected':''}>${escHtml(cl.name)}</option>`).join('')}</select></div>
-      <div class="fg"><label>Payment <span class="req">*</span></label><select id="s_payment"><option value="Cash">Cash</option><option value="Credit">Credit</option></select></div>
+      <div class="fg"><label>Payment <span class="req">*</span></label><select id="s_payment" onchange="showCajaField('s',val('s_payment')==='Cash')"><option value="Cash">Cash</option><option value="Credit">Credit</option></select></div>
+      ${cajaField('s')}
       <div class="fg full derived stackd"><div><span>Sale total</span><b id="s_preview">₲ 0</b></div>${can('profitCharts')?`<div><span>Estimated profit</span><b id="s_profit">—</b></div>`:''}</div>
     </div></div>
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveSale()">Save sale</button></div></div>`);
+  showCajaField('s',true);
 }
 function stepQty(id,d){ const e=document.getElementById(id); const max=+e.dataset.max||100000; e.value=Math.max(1,Math.min(max,(parseInt2(e.value)||0)+d)); e.classList.remove('err'); e.dispatchEvent(new Event('input')); }
 function onPickItem(){ const it=DB.inventory.find(i=>i.id===val('s_item')); if(!it)return;
@@ -131,8 +151,9 @@ async function saveSale(){
   let ok=true; if(!item){document.getElementById('s_item').classList.add('err');ok=false;} if(price<=0){document.getElementById('s_price').classList.add('err');ok=false;}
   if(qty<1||(item&&qty>invLeft(item))){document.getElementById('s_qty').classList.add('err');ok=false;}
   if(!ok){ toast(item&&qty>invLeft(item)?'not enough stock':'Pick an item, a quantity and a price','warn'); return; }
+  const cj=val('s_payment')==='Cash'?cajaPayload('s'):{}; if(!cj){ toast('Enter the exchange rate','warn'); return; }
   try{
-    await apiReq('POST','/api/sales',{companyId:activeCompanyId(),inventoryId:item.id,unitPrice:price,quantity:qty,delivery:val('s_delivery'),clientId:val('s_client')||null,payment:val('s_payment'),date:val('s_date')});
+    await apiReq('POST','/api/sales',{companyId:activeCompanyId(),inventoryId:item.id,unitPrice:price,quantity:qty,delivery:val('s_delivery'),clientId:val('s_client')||null,payment:val('s_payment'),date:val('s_date'),...cj});
     closeModal(); await reload(); toast('Sale registered');
   }catch(e){ toast(apiErr(e),'warn'); }
 }
@@ -142,24 +163,30 @@ function openExpense(){
     <div class="modal-body"><div class="form-grid">
       <div class="fg"><label>Date <span class="req">*</span></label><input type="date" id="e_date" value="${today()}"></div>
       <div class="fg"><label>Amount (PYG) <span class="req">*</span></label><input id="e_amount" inputmode="numeric" placeholder="250.000"></div>
+      ${cajaField('e')}
       <div class="fg full"><label>Category <span class="req">*</span></label><select id="e_cat">${EXP_CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>
       <div class="fg full"><label>Description <span class="muted" style="font-weight:400">(optional)</span></label><textarea id="e_desc" placeholder="What was this for?"></textarea></div>
     </div></div><div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveExpense()">Save expense</button></div></div>`);
+  onCajaPick('e');
 }
 async function saveExpense(){ const amt=parseInt2(val('e_amount')); if(amt<=0){document.getElementById('e_amount').classList.add('err');toast('Enter an amount','warn');return;}
-  try{ await apiReq('POST','/api/expenses',{companyId:activeCompanyId(),date:val('e_date'),amount:amt,category:val('e_cat'),description:val('e_desc').trim()}); closeModal(); await reload(); toast('Expense saved'); }catch(e){ toast(apiErr(e),'warn'); } }
+  const cj=cajaPayload('e'); if(!cj){ toast('Enter the exchange rate','warn'); return; }
+  try{ await apiReq('POST','/api/expenses',{companyId:activeCompanyId(),date:val('e_date'),amount:amt,category:val('e_cat'),description:val('e_desc').trim(),...cj}); closeModal(); await reload(); toast('Expense saved'); }catch(e){ toast(apiErr(e),'warn'); } }
 function openRevenue(){
   if(!can('expenses')){toast('Not permitted for your role','warn');return;}
   showModalHTML(`<div class="modal"><div class="modal-head"><div><h3>Add revenue</h3><p>Income not tied to a product sale.</p></div><button class="x" onclick="closeModal()">${xIcon()}</button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="fg"><label>Date <span class="req">*</span></label><input type="date" id="r_date" value="${today()}"></div>
       <div class="fg"><label>Amount (PYG) <span class="req">*</span></label><input id="r_amount" inputmode="numeric" placeholder="500.000"></div>
+      ${cajaField('r')}
       <div class="fg full"><label>Category <span class="req">*</span></label><select id="r_cat">${REV_CATS.map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>
       <div class="fg full"><label>Description <span class="muted" style="font-weight:400">(optional)</span></label><textarea id="r_desc" placeholder="Source of this revenue"></textarea></div>
     </div></div><div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveRevenue()">Save revenue</button></div></div>`);
+  onCajaPick('r');
 }
 async function saveRevenue(){ const amt=parseInt2(val('r_amount')); if(amt<=0){document.getElementById('r_amount').classList.add('err');toast('Enter an amount','warn');return;}
-  try{ await apiReq('POST','/api/revenues',{companyId:activeCompanyId(),date:val('r_date'),amount:amt,category:val('r_cat'),description:val('r_desc').trim()}); closeModal(); await reload(); toast('Revenue saved'); }catch(e){ toast(apiErr(e),'warn'); } }
+  const cj=cajaPayload('r'); if(!cj){ toast('Enter the exchange rate','warn'); return; }
+  try{ await apiReq('POST','/api/revenues',{companyId:activeCompanyId(),date:val('r_date'),amount:amt,category:val('r_cat'),description:val('r_desc').trim(),...cj}); closeModal(); await reload(); toast('Revenue saved'); }catch(e){ toast(apiErr(e),'warn'); } }
 
 function openInv(){
   if(!can('inventoryManage')){toast('Not permitted for your role','warn');return;}
@@ -176,6 +203,7 @@ function openInv(){
         <div class="hint">The purchase cost is recorded automatically as an expense in Business Flow.</div></div>
       <div class="fg"><label>Selling price per unit (PYG) <span class="req">*</span></label><input id="i_sell" inputmode="numeric" placeholder="1.500.000"></div>
       <div class="fg"><label>Purchase date</label><input type="date" id="i_date" value="${today()}"></div>
+      ${cajaField('i',{noFx:true,sel:(cajaList().find(c=>c.currency==='USD'&&c.kind==='Banco')||{}).id||defaultCajaId()})}
       <div class="fg full"><label>Status</label><select id="i_status"><option value="Available">Available</option><option value="Reserved">Reserved</option><option value="Sold">Sold</option></select></div>
     </div></div><div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveInv()">Add to inventory</button></div></div>`);
 }
@@ -184,7 +212,8 @@ function updInvPreview(){ const usd=parseNum(val('i_usd')),fx=parseInt2(val('i_f
 async function saveInv(){ const brand=val('i_brand').trim(),model=val('i_model').trim(),usd=parseNum(val('i_usd')),fx=parseInt2(val('i_fx')),sell=parseInt2(val('i_sell')),qty=parseInt2(val('i_qty'));
   let ok=true; [['i_brand',!!brand],['i_model',!!model],['i_usd',usd>0],['i_fx',fx>0],['i_sell',sell>0],['i_qty',qty>=1]].forEach(([id,v])=>{ if(!v){document.getElementById(id).classList.add('err');ok=false;} });
   if(!ok){toast('Complete the required fields','warn');return;}
-  try{ await apiReq('POST','/api/inventory',{companyId:activeCompanyId(),brand,model,sku:val('i_sku').trim(),quantity:qty,purchaseUSD:usd,fxRate:fx,sellPrice:sell,status:val('i_status'),purchaseDate:val('i_date')}); closeModal(); await reload(); toast(pLabel()+' added to inventory'); }catch(e){ toast(apiErr(e),'warn'); } }
+  const cj=cajaPayload('i'); if(cj&&cj.cajaId) cj.cajaFx=fx;
+  try{ await apiReq('POST','/api/inventory',{companyId:activeCompanyId(),brand,model,sku:val('i_sku').trim(),quantity:qty,purchaseUSD:usd,fxRate:fx,sellPrice:sell,status:val('i_status'),purchaseDate:val('i_date'),...(cj||{})}); closeModal(); await reload(); toast(pLabel()+' added to inventory'); }catch(e){ toast(apiErr(e),'warn'); } }
 
 function openClient(){
   const canAssign=can('allClients'); const agents=coScope(DB.users).filter(u=>u.role==='sales');
@@ -204,7 +233,7 @@ function openUser(presetRole){
   const isAdmin=session.user.role==='admin';
   const roles=isAdmin?['admin','manager','sales']:['sales']; // managers can only create sales
   const companies=isAdmin?DB.companies:[activeCompany()];
-  showModalHTML(`<div class="modal"><div class="modal-head"><div><h3>New profile</h3><p>${isAdmin?'Create any role and assign a company.':'Add a sales agent to your company.'}</p></div><button class="x" onclick="closeModal()">${xIcon()}</button></div>
+  showModalHTML(`<div class="modal"><div class="modal-head"><div><h3>${presetRole==='admin'?'New master admin':'New profile'}</h3><p>${presetRole==='admin'?'A master admin creates companies and can open all of them.':isAdmin?'Create any role and assign a company.':'Add a sales agent to your company.'}</p></div><button class="x" onclick="closeModal()">${xIcon()}</button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="fg full"><label>Full name <span class="req">*</span></label><input id="u_name" placeholder="e.g. Ana López"></div>
       <div class="fg"><label>Username <span class="req">*</span></label><input id="u_user" placeholder="analopez"></div>

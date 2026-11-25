@@ -16,9 +16,37 @@ const MONTHS_ES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','No
    ============================================================ */
 let lang='es';
 function mName(i){ return (lang==='es'?MONTHS_ES:MONTHS)[i]; }
-const ROLE_L={admin:{en:'Admin',es:'Admin'},manager:{en:'Manager',es:'Gerente'},sales:{en:'Sales',es:'Vendedor'}};
+const ROLE_L={admin:{en:'Master admin',es:'Admin maestro'},manager:{en:'Manager',es:'Gerente'},sales:{en:'Sales',es:'Vendedor'}};
 function roleLabel(r){ return (ROLE_L[r]||{en:r,es:r})[lang]; }
 const ES={
+  // v5 — cajas, current-month panels, charts sheet, master admin
+  "Charts and past months":"Gráficos y meses anteriores","Charts":"Gráficos","current month":"mes en curso","Last 6 months, sales by brand and delivery":"Últimos 6 meses, ventas por marca y entrega",
+  "Sales this month":"Ventas del mes","Profit this month":"Ganancia del mes","My sales this month":"Mis ventas del mes","Best selling brand":"Marca más vendida",
+  "Out of every ₲ 100 billed, ":"De cada ₲ 100 facturados, "," is net profit":" son ganancia neta","Out of every ₲ 100 of sales, ":"De cada ₲ 100 vendidos, ",
+  "Cost of what was sold":"Costo de lo vendido","Cash flow: revenue minus every expense, inventory purchases included":"Flujo de caja: ingresos menos todos los gastos, incluidas las compras de inventario",
+  "Stock at sale price":"Stock a precio de venta","Balance today":"Saldo a hoy",
+  "Where the business money is, in Gs and USD":"Dónde está el dinero del negocio, en Gs y USD","New caja":"Nueva caja","Withdrawal":"Retiro","Deposit into a caja":"Ingresar dinero a una caja","Withdraw from a caja":"Retirar dinero de una caja","Deposit":"Depósito",
+  "Movements":"Movimientos","All cajas in Gs":"Todas las cajas en Gs","All cajas":"Todas las cajas","Concept":"Concepto","Money in":"Entrada","Money out":"Salida","Exchange rate":"Cotización","Recorded by":"Registrado por",
+  "Change log":"Registro de cambios","Every movement created, edited or deleted, with user, date and time":"Cada movimiento creado, editado o eliminado, con usuario, fecha y hora","Date and time":"Fecha y hora","Action":"Acción",
+  "Dollars converted":"Dólares convertidos"," · last one entered":" · la última cargada","No rate entered yet":"Aún no se cargó una cotización",
+  "Cash sales, expenses and client payments land here, or load a deposit.":"Aquí llegan las ventas al contado, los gastos y los cobros a clientes, o cargá un depósito.",
+  "Edited · ":"Editado · ","Edit movement":"Editar movimiento","Edit":"Editar","Caja transfer":"Transferencia","Client payment":"Cobro a cliente",
+  "Caja created":"Caja creada","Caja renamed":"Caja renombrada","Caja deleted":"Caja eliminada","Created":"Creado","Edited":"Editado","Deleted":"Eliminado","Before: ":"Antes: ","After: ":"Después: ","No changes yet":"Sin cambios aún",
+  "For example another bank account or a petty cash box.":"Por ejemplo otra cuenta bancaria o una caja chica.","e.g. Banco Itaú Gs":"ej. Banco Itaú Gs","Currency":"Moneda","Bank":"Banco","Other":"Otro","Create caja":"Crear caja",
+  "The exchange rate of the day is required to record any amount.":"Para registrar cualquier monto se requiere la cotización del día.",
+  "e.g. opening balance, owner contribution":"ej. saldo inicial, aporte del dueño","e.g. bank fee, owner withdrawal":"ej. comisión bancaria, retiro del dueño","Save changes":"Guardar cambios","Save":"Guardar",
+  "Transfer between cajas":"Transferir entre cajas","The amount is in the currency of the source caja; the rate converts it.":"El monto va en la moneda de la caja de origen; la cotización lo convierte.",
+  "From caja":"Desde la caja","To caja":"Hacia la caja","e.g. cash deposit at the bank":"ej. depósito de efectivo en el banco","Arrives in the destination caja":"Llega a la caja de destino","Transfer saved":"Transferencia guardada","Transfer":"Transferir",
+  "The previous values stay in the change log.":"Los valores anteriores quedan en el registro de cambios.",
+  "This movement comes from a sale, expense or payment: its amount follows the origin. You can move it to another caja or correct the rate.":"Este movimiento viene de una venta, gasto o cobro: su monto sigue al origen. Podés pasarlo a otra caja o corregir la cotización.",
+  "Movement saved":"Movimiento guardado","Movement updated":"Movimiento actualizado","Enter the exchange rate":"Ingresa la cotización",
+  "New master admin":"Nuevo admin maestro","A master admin creates companies and can open all of them.":"Un admin maestro crea empresas y puede entrar a todas.",
+  "invalid caja":"Caja inválida","exchange rate required":"Cotización requerida","caja has movements":"La caja tiene movimientos","bad currency":"Moneda inválida",
+  "a transfer keeps its cajas — delete it and create it again":"Una transferencia mantiene sus cajas — elimínala y créala de nuevo",
+  "this movement comes from a sale or expense — delete it there":"Este movimiento viene de una venta o gasto — elimínalo desde allí",
+  "Reset password":"Restablecer contraseña"," will sign in with the new password.":" entrará con la contraseña nueva.","Change password":"Cambiar contraseña","At least 8 characters":"Mínimo 8 caracteres",
+  "Current password":"Contraseña actual","New password":"Contraseña nueva","Repeat new password":"Repetir contraseña nueva","Save password":"Guardar contraseña","Password changed":"Contraseña cambiada",
+  "The passwords do not match":"Las contraseñas no coinciden","password too short":"La contraseña debe tener al menos 8 caracteres","current password is incorrect":"La contraseña actual es incorrecta",
   // v4 — quantity, real profit, reports, mobile
   "Sign out":"Cerrar sesión","View all":"Ver todo","Name":"Nombre","e.g. Watch, Phone, Shoe":"ej. Reloj, Celular, Zapato","e.g. ":"ej. ","Unit cost":"Costo unit.","More":"Más","Sections":"Secciones",
   "Month result":"Resultado del mes","Profit is what remains after the cost of what you sold":"La ganancia es lo que queda después del costo de lo que vendiste",
@@ -229,7 +257,7 @@ function applyI18n(){
   document.querySelectorAll('#loginLang button, #topLang button, #setLang button, #sheetLang button').forEach(b=>b.classList.toggle('on',b.dataset.lang===lang));
 }
 
-const DB={companies:[],users:[],inventory:[],sales:[],expenses:[],revenues:[],clients:[],payments:[]};
+const DB={companies:[],users:[],inventory:[],sales:[],expenses:[],revenues:[],clients:[],payments:[],cajas:[],cajaMovs:[],cajaLog:[]};
 let idc=1; const uid=p=>(p||'')+(idc++);
 let session={user:null};        // logged-in user
 let adminCompanyId=null;        // company an admin is currently inspecting
@@ -250,6 +278,7 @@ async function loadState(companyId){
   session.user=st.me;
   DB.companies=st.companies||[]; DB.users=st.users||[]; DB.inventory=st.inventory||[];
   DB.clients=st.clients||[]; DB.sales=st.sales||[]; DB.expenses=st.expenses||[]; DB.revenues=st.revenues||[]; DB.payments=st.payments||[];
+  DB.cajas=st.cajas||[]; DB.cajaMovs=st.cajaMovs||[]; DB.cajaLog=st.cajaLog||[];
   adminCompanyId=st.activeCompanyId||null;
   indexState();
   return st;

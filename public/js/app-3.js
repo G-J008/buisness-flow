@@ -4,85 +4,108 @@
 function viewDashboard(){
   const c=activeCompany();
   if(!c) return emptyState('No company selected','Create a company in the Admin Console to get started.','shield');
-  const months=dataMonths();
-  if(!months.length) return dashHeader('')+emptyState(`No activity yet in ${c.name}`,`Register your first sale to start tracking revenue${can('profitCharts')?', expenses and profit':''}.`,'flow',true);
-  const sel=months[0];
-  return dashHeader(months,sel)+`<div id="dashBody"></div>`;
+  const ym=today().slice(0,7);
+  return `<div class="section-head"><div><h2>Business overview</h2><div class="desc"><i data-u>${monthLabel(ym)}</i> · current month</div></div><div class="head-actions">${can('profitCharts')?`<button class="btn" onclick="go('charts')">Charts and past months</button>`:''}<button class="btn primary" onclick="openSale()">${plus()}New Sale</button></div></div><div id="dashBody"></div>`;
 }
-function dashHeader(months,sel){
-  const salesBtn=`<button class="btn primary" onclick="openSale()">${plus()}New Sale</button>`;
-  const monthSel = months&&months.length?`<select class="input" id="dashMonth" style="height:38px" onchange="renderDashBody()">${months.map(m=>`<option value="${m}" ${m===sel?'selected':''}>${monthLabel(m)}</option>`).join('')}</select>`:'';
-  return `<div class="section-head"><div><h2>Business overview</h2><div class="desc" id="dashMonthLabel">${sel?monthLabel(sel)+' summary':'—'}</div></div><div class="head-actions">${monthSel}${salesBtn}</div></div>`;
-}
-POST.dashboard=()=>{ if(document.getElementById('dashMonth')) renderDashBody(); };
-function stmtCard(a,prev){
-  const base=a.salesRev+a.otherRev;
-  const line=(cls,l,small,p,amt)=>`<div class="stmt-line ${cls}"><div class="l">${l}${small?`<small>${small}</small>`:''}</div>${p?`<div class="p">${p}</div>`:''}<div class="a">${amt}</div></div>`;
-  const seg=(v,c)=>base>0&&v>0?`<span style="width:${Math.min(100,v/base*100)}%;background:${c}"></span>`:'';
-  const soldTxt=`${a.sold} ${unitWord(a.sold,'unit')} ${lang==='es'?'en':'in'} ${a.tx} ${unitWord(a.tx,'sale')}`;
-  return `<div class="card stmt">
-    <div class="stmt-head"><div><div class="panel-title">Month result</div><div class="panel-sub">Profit is what remains after the cost of what you sold</div></div><div class="panel-sub" style="white-space:nowrap">${prev?delta(a.net,prev.net):''}</div></div>
-    ${line('','Product sales',`<i data-u>${soldTxt}</i>`,'',fmt(a.salesRev))}
-    ${line('minus','Cost of goods sold','What those units cost you','',fmt(-a.cogs))}
-    ${line('sub','Gross profit','',a.salesRev?pct(a.gross,a.salesRev)+' margin':'',`<span class="${a.gross<0?'neg':''}">${fmt(a.gross)}</span>`)}
-    ${a.otherRev?line('','Other revenue','','','+ '+fmt(a.otherRev)):''}
-    ${line('minus','Operating expenses','Without inventory purchases','',fmt(-a.opex))}
-    ${line('total','Net profit','',base?pct(a.net,base)+' of billing':'',`<span class="${a.net>=0?'pos':'neg'}">${fmt(a.net)}</span>`)}
-    <div class="split" role="img" aria-label="${tr('Cost')} ${pct(a.cogs,base,0)}, ${tr('Expenses')} ${pct(a.opex,base,0)}, ${tr('Profit')} ${pct(Math.max(0,a.net),base,0)}">${seg(a.cogs,'#eda100')}${seg(a.opex,'#eb6834')}${seg(Math.max(0,a.net),'#2a78d6')}</div>
-    <div class="split-key"><span><i style="background:#eda100"></i>Cost <b>${pct(a.cogs,base,0)}</b></span><span><i style="background:#eb6834"></i>Expenses <b>${pct(a.opex,base,0)}</b></span><span><i style="background:#2a78d6"></i>Profit <b>${pct(Math.max(0,a.net),base,0)}</b></span></div>
-  </div>`;
-}
+POST.dashboard=()=>{ if(document.getElementById('dashBody')) renderDashBody(); };
 function factsCard(title,rows){
   return `<div class="card"><div style="padding:18px 20px 2px"><div class="panel-title">${title}</div></div><div class="facts">${rows.filter(Boolean).map(r=>`<div class="fact"><div class="l">${r[0]}${r[2]?`<small>${r[2]}</small>`:''}</div><div class="a ${r[3]||''}">${r[1]}</div></div>`).join('')}</div></div>`;
+}
+// A text panel: title, one main figure, then plain lines (label, value, small note, class).
+function textPanel(title,big,bigNote,rows,bigCls){
+  return `<div class="card panel"><div class="panel-title">${title}</div><div class="panel-big ${bigCls||''}">${big}</div>${bigNote?`<div class="panel-note">${bigNote}</div>`:''}
+    <div class="facts">${rows.filter(Boolean).map(r=>`<div class="fact ${r[4]||''}"><div class="l">${r[0]}${r[2]?`<small>${r[2]}</small>`:''}</div><div class="a ${r[3]||''}">${r[1]}</div></div>`).join('')}</div></div>`;
 }
 function noCostNote(a){ return a.noCost?`<div class="note"><i data-u>${a.noCost} ${unitWord(a.noCost,'sale')}</i> have no recorded cost, so their whole price shows as profit.</div>`:''; }
 function stockNow(){ const st=invList().filter(i=>invLeft(i)>0); return {units:sum(st,invLeft),cost:sum(st,i=>invLeft(i)*(+i.purchasePYG||0)),sell:sum(st,i=>invLeft(i)*(+i.sellPrice||0))}; }
 const kpiTile=k=>`<div class="card kpi"><div class="lbl">${k.lbl}</div><div class="val">${k.val}</div><div class="sub">${k.sub||''}</div></div>`;
+function prevYm(ym){ const [y,m]=ym.split('-').map(Number); const d=new Date(y,m-2,1); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+// "Out of every ₲ 100 sold, ₲ 23 is left" — a margin in words instead of a percentage.
+function per100(v,base){ if(!base) return '—'; return fmt(Math.round(v/base*100)); }
+// Profit read top to bottom in plain text: sales − cost = gross profit; − expenses = net profit.
+function profitPanel(a,title){ const base=a.salesRev+a.otherRev;
+  return textPanel(title,fmt(a.net),`Out of every ₲ 100 billed, <b><i data-u>${per100(a.net,base)}</i></b> is net profit`,[
+    ['Product sales',fmt(a.salesRev)],
+    ['Cost of what was sold',fmt(-a.cogs),'What those units cost you'],
+    ['Gross profit',fmt(a.gross),`Out of every ₲ 100 of sales, <i data-u>${per100(a.gross,a.salesRev)}</i>`,a.gross<0?'neg':'','sub'],
+    a.otherRev?['Other revenue','+ '+fmt(a.otherRev)]:null,
+    ['Operating expenses',fmt(-a.opex),'Without inventory purchases'],
+    ['Net profit',fmt(a.net),'',a.net<0?'neg':'pos','total'],
+  ],a.net<0?'neg':''); }
 function renderDashBody(){
-  const ym=document.getElementById('dashMonth').value; const a=monthAgg(ym);
-  document.getElementById('dashMonthLabel').textContent=tr(monthLabel(ym)+' summary');
+  const ym=today().slice(0,7), a=monthAgg(ym), prev=monthAgg(prevYm(ym));
   const showProfit=can('profitCharts');
+  const brandRevMonth={}; a.rev.filter(r=>r.saleId).forEach(r=>brandRevMonth[r.brand]=(brandRevMonth[r.brand]||0)+r.amount);
+  const best=Object.entries(brandRevMonth).sort((x,y)=>y[1]-x[1])[0];
+  const vsPrev=(cur,prv)=>prv?delta(cur,prv):'';
+  const soldTxt=`<i data-u>${a.sold} ${unitWord(a.sold,'unit')} · ${a.tx} ${unitWord(a.tx,'sale')}</i>`;
+  let html='';
+  if(showProfit){
+    const base=a.salesRev+a.otherRev, st=stockNow(), receivable=sum(coScope(DB.clients),c=>clientBalance(c.id));
+    html+=noCostNote(a)+`<div class="grid panels-3">`
+      +textPanel('Sales this month',fmt(base),vsPrev(base,prev.revSum),[
+        ['Product sales',fmt(a.salesRev),soldTxt],
+        a.otherRev?['Other revenue',fmt(a.otherRev)]:null,
+        ['Avg sale per unit',fmt(a.avgSale)],
+        ['Best selling brand',best?`<i data-u>${escHtml(best[0])}</i>`:'—',best?`<i data-u>${fmt(best[1])}</i>`:''],
+      ])
+      +profitPanel(a,'Profit this month')
+      +textPanel('Cash and credit',fmt(a.cash),'Cash flow: revenue minus every expense, inventory purchases included',[
+        ['Inventory purchases this month',fmt(a.invBuy),'Becomes cost only when the units are sold'],
+        ['Receivable on credit',fmt(receivable),'What clients still owe'],
+        ['Stock at cost',fmt(st.cost),`<i data-u>${st.units}</i> units available`],
+        ['Stock at sale price',fmt(st.sell)],
+        ['Current Balance',fmt(balance()),'All revenue minus all expenses to date',balance()<0?'neg':''],
+      ],a.cash<0?'neg':'')
+      +`</div>`;
+    if(cajaList().length) html+=`<div class="section-head"><div><h2>Cajas</h2><div class="desc">Balance today</div></div><button class="btn ghost sm" onclick="go('cajas')">View all</button></div><div class="grid panels-3">${cajaPanelsHTML()}</div>`;
+  }else{
+    // sales agents: their own billing only — never costs or margins
+    html+=`<div class="grid panels-3">`+textPanel('My sales this month',fmt(a.revSum),vsPrev(a.revSum,prev.revSum),[
+      ['Units sold',soldTxt],['Avg sale per unit',fmt(a.avgSale)],
+      ['Best selling brand',best?`<i data-u>${escHtml(best[0])}</i>`:'—',best?`<i data-u>${fmt(best[1])}</i>`:'']])+`</div>`;
+  }
+  html+=`<div class="section-head"><div><h2>Recent activity</h2></div><button class="btn ghost sm" onclick="go('flow')">View all</button></div><div id="recentGrid" class="grid ${showProfit?'charts-row':''}"></div>`;
+  document.getElementById('dashBody').innerHTML=tr(html);
+  renderRecent(showProfit);
+}
+
+/* ============================================================
+   VIEW: CHARTS — previous months, moved out of the dashboard
+   ============================================================ */
+function viewCharts(){
+  const c=activeCompany(); if(!c) return emptyState('No company selected','Pick or create a company first.','shield');
+  const months=dataMonths();
+  if(!months.length) return emptyState(`No activity yet in ${c.name}`,'Register your first sale to start tracking revenue.','flow',true);
+  return `<div class="section-head"><div><h2>Charts and past months</h2><div class="desc">Last 6 months, sales by brand and delivery</div></div>
+    <div class="head-actions"><select class="input" id="chMonth" style="height:38px" onchange="renderCharts()">${months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('')}</select></div></div><div id="chartsBody"></div>`;
+}
+POST.charts=()=>{ if(document.getElementById('chMonth')) renderCharts(); };
+function renderCharts(){
+  const ym=val('chMonth'), a=monthAgg(ym), showProfit=can('profitCharts');
   const brandRev={}; revList().filter(r=>r.saleId).forEach(r=>brandRev[r.brand]=(brandRev[r.brand]||0)+r.amount);
   const brandRevMonth={}; a.rev.filter(r=>r.saleId).forEach(r=>brandRevMonth[r.brand]=(brandRevMonth[r.brand]||0)+r.amount);
   const brandRevMonthE=Object.entries(brandRevMonth).sort((x,y)=>y[1]-x[1]);
-  const best=brandRevMonthE[0];
-  const months=dataMonths(); const idx=months.indexOf(ym); const prev=idx>=0&&idx<months.length-1?monthAgg(months[idx+1]):null;
-  const soldTile={lbl:pPlural()+' Sold (mo.)',val:a.sold,sub:prev?delta(a.sold,prev.sold):'this period'};
-  const avgTile={lbl:'Avg Sale Value',val:fmt(a.avgSale),sub:'per unit'};
-  const bestTile={lbl:'Best selling brand this month',val:best?`<i data-u>${escHtml(best[0])}</i>`:'—',sub:best?fmt(best[1]):''};
-
   let html='';
   if(showProfit){
-    const st=stockNow(); const receivable=sum(coScope(DB.clients),c=>clientBalance(c.id));
-    html+=noCostNote(a)+`<div class="result-row">${stmtCard(a,prev)}${factsCard('Cash and stock',[
-      ['Cash flow this month',fmt(a.cash),'Revenue minus every expense, inventory purchases included',a.cash<0?'neg':''],
-      ['Inventory purchases this month',fmt(a.invBuy),'Becomes cost only when the units are sold'],
-      ['Receivable on credit',fmt(receivable),'What clients still owe'],
-      ['Stock at cost',fmt(st.cost),`<i data-u>${st.units}</i> units available`],
-      ['Current Balance',fmt(balance()),'All revenue minus all expenses to date',balance()<0?'neg':''],
-    ])}</div>`;
-    html+=`<div class="grid kpis">${[soldTile,avgTile,{lbl:'Avg profit per unit',val:fmt(a.sold?a.gross/a.sold:0),sub:a.salesRev?pct(a.gross,a.salesRev)+' margin':''},bestTile].map(kpiTile).join('')}</div>`;
     html+=`<div class="grid charts-row">
       <div class="card chart-card"><h3>Billing and profit</h3><div class="ch-sub">Last 6 months · PYG</div><div class="chart-wrap"><canvas id="chProfit"></canvas></div></div>
       <div class="card chart-card"><h3>Cash flow</h3><div class="ch-sub">Revenue vs every expense, inventory purchases included</div><div class="chart-wrap"><canvas id="chRevExp"></canvas></div></div></div>
       <div class="grid charts-row3" style="margin-top:16px">
-      <div class="card chart-card"><h3>Sales by Brand (month)</h3><div class="ch-sub">Revenue share · ${monthLabel(ym)}</div><div class="chart-wrap md">${brandRevMonthE.length?'<canvas id="chBrandMonth"></canvas>':'<div class="empty">No sales this month</div>'}</div></div>
+      <div class="card chart-card"><h3>Sales by Brand (month)</h3><div class="ch-sub">Revenue share · <i data-u>${monthLabel(ym)}</i></div><div class="chart-wrap md">${brandRevMonthE.length?'<canvas id="chBrandMonth"></canvas>':'<div class="empty">No sales this month</div>'}</div></div>
       <div class="card chart-card"><h3>Sales by Brand (all time)</h3><div class="ch-sub">All-time revenue share</div><div class="chart-wrap md"><canvas id="chBrand"></canvas></div></div>
       <div class="card chart-card"><h3>Delivery Methods</h3><div class="ch-sub">How ${pPlural().toLowerCase()} reach buyers</div><div class="chart-wrap md"><canvas id="chDelivery"></canvas></div></div></div>`;
   }else{
-    // sales agents: their own billing only — never costs or margins
-    html+=`<div class="grid kpis">${[{lbl:'Monthly billing',val:fmt(a.revSum),sub:prev?delta(a.revSum,prev.revSum):''},soldTile,avgTile,bestTile].map(kpiTile).join('')}</div>`;
     html+=`<div class="card chart-card"><h3>My Revenue Trend</h3><div class="ch-sub">Last 6 months · PYG</div><div class="chart-wrap"><canvas id="chRevOnly"></canvas></div></div>`;
   }
-  html+=`<div class="section-head"><div><h2>Recent activity</h2></div><button class="btn ghost sm" onclick="go('flow')">View all</button></div><div id="recentGrid" class="grid ${showProfit?'charts-row':''}"></div>`;
-  document.getElementById('dashBody').innerHTML=tr(html);
-
-  const m6=lastNMonths(6), labels=m6.map(m=>mName(+m.split('-')[1]-1));
+  document.getElementById('chartsBody').innerHTML=tr(html);
+  // the 6 months end at the month picked
+  const [y,m]=ym.split('-').map(Number); const m6=[]; for(let i=5;i>=0;i--){ const d=new Date(y,m-1-i,1); m6.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); }
+  const labels=m6.map(x=>mName(+x.split('-')[1]-1));
   if(showProfit){
     mkChart('chProfit',profitChartCfg(m6,labels));
-    mkChart('chRevExp',{type:'bar',data:{labels,datasets:[{label:tr('Revenue'),data:m6.map(m=>monthAgg(m).revSum),backgroundColor:'#1baf7a',borderRadius:4,maxBarThickness:24},{label:tr('Expenses'),data:m6.map(m=>monthAgg(m).expSum),backgroundColor:'#eb6834',borderRadius:4,maxBarThickness:24}]},options:barOpts()});
+    mkChart('chRevExp',{type:'bar',data:{labels,datasets:[{label:tr('Revenue'),data:m6.map(x=>monthAgg(x).revSum),backgroundColor:'#1baf7a',borderRadius:4,maxBarThickness:24},{label:tr('Expenses'),data:m6.map(x=>monthAgg(x).expSum),backgroundColor:'#eb6834',borderRadius:4,maxBarThickness:24}]},options:barOpts()});
     const bE=Object.entries(brandRev).sort((x,y)=>y[1]-x[1]);
-    // keep each brand's colour identical in both brand charts
     const brandColor=b=>SERIES[Math.max(0,bE.findIndex(e=>e[0]===b))%SERIES.length];
     mkChart('chBrand',{type:'doughnut',data:{labels:bE.map(e=>e[0]),datasets:[{data:bE.map(e=>e[1]),backgroundColor:bE.map(e=>brandColor(e[0])),borderColor:'#fff',borderWidth:2,hoverOffset:8}]},options:donutOpts(true,true)});
     if(brandRevMonthE.length) mkChart('chBrandMonth',{type:'doughnut',data:{labels:brandRevMonthE.map(e=>e[0]),datasets:[{data:brandRevMonthE.map(e=>e[1]),backgroundColor:brandRevMonthE.map(e=>brandColor(e[0])),borderColor:'#fff',borderWidth:2,hoverOffset:8}]},options:donutOpts(true,true)});
@@ -90,10 +113,9 @@ function renderDashBody(){
     const dE=DELIVERIES.filter(d=>dc[d]).map(d=>[d,dc[d]]);
     mkChart('chDelivery',{type:'doughnut',data:{labels:dE.map(e=>tr(e[0])),datasets:[{data:dE.map(e=>e[1]),backgroundColor:['#2a78d6','#1baf7a','#eda100','#e87ba4'],borderColor:'#fff',borderWidth:2,hoverOffset:8}]},options:donutOpts(false,true)});
   }else{
-    const myRev=m6.map(m=>myScope(DB.revenues).filter(r=>ymKey(r.date)===m).reduce((a,r)=>a+r.amount,0));
+    const myRev=m6.map(x=>myScope(DB.revenues).filter(r=>ymKey(r.date)===x).reduce((t,r)=>t+r.amount,0));
     mkChart('chRevOnly',{type:'line',data:{labels,datasets:[{label:tr('My revenue'),data:myRev,borderColor:'#1baf7a',backgroundColor:grad('#1baf7a'),fill:true,tension:.35,borderWidth:2,pointRadius:3.5,pointBackgroundColor:'#1baf7a',pointBorderColor:'#fff',pointBorderWidth:1.5}]},options:lineOpts()});
   }
-  renderRecent(showProfit);
 }
 // Billing next to what was really earned: bars for billed and gross profit, a line for net profit.
 function profitChartCfg(months,labels){
@@ -275,9 +297,9 @@ function exportInventory(){
   const label=cur?`${tr('Snapshot as of')} ${fmtDate(cut)}`:`${tr('Closing snapshot')} · ${monthLabel(ym)} (${fmtDate(cut)})`;
   const slug=activeCompany().name.toLowerCase().replace(/\s/g,'-');
   const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'pt',format:'a4'}); const W=doc.internal.pageSize.getWidth();
-  doc.setFillColor(42,120,214); doc.rect(0,0,W,80,'F'); doc.setTextColor(255); doc.setFont('times','bold'); doc.setFontSize(20); doc.text(activeCompany().name,40,40);
+  doc.setFillColor(42,120,214); doc.rect(0,0,W,80,'F'); doc.setTextColor(255); doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.text(activeCompany().name,40,40);
   doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.text(tr('Inventory Report')+' — '+label,40,60); doc.setFontSize(9); doc.text(tr('Generated ')+fmtDate(today()),W-40,40,{align:'right'});
-  doc.setTextColor(20); doc.setFont('times','bold'); doc.setFontSize(13); doc.text(tr('Summary by brand'),40,108);
+  doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(tr('Summary by brand'),40,108);
   const sumRows=Object.entries(agg).sort((a,b)=>b[1].sell-a[1].sell).map(([b,v])=>[b,String(v.qty),pct(v.qty,tQ),fmtPdf(v.cost),pct(v.cost,tC),fmtPdf(v.sell),pct(v.sell,tS)]);
   sumRows.push([{content:'Total',styles:{fontStyle:'bold'}},{content:String(tQ),styles:{fontStyle:'bold'}},'100%',{content:fmtPdf(tC),styles:{fontStyle:'bold'}},'100%',{content:fmtPdf(tS),styles:{fontStyle:'bold'}},'100%']);
   doc.autoTable({startY:116,head:[[tr('Brand'),tr('Units'),'%',tr('Cost value'),'%',tr('Sale value'),'%']],body:sumRows,theme:'grid',headStyles:{fillColor:[42,120,214],fontSize:8.5},bodyStyles:{fontSize:8.5},margin:{left:40,right:40},columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'}}});

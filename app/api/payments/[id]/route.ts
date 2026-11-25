@@ -1,4 +1,5 @@
-import { requireSession, unauthorized, forbidden, bad, json, resolveCompanyId } from '@/lib/api';
+import { requireSession, unauthorized, forbidden, bad, json, resolveCompanyId, actorOf } from '@/lib/api';
+import { unlinkMoney } from '@/lib/cajas';
 import { getPayment, deletePayment, getClient } from '@/lib/store';
 
 export const runtime = 'nodejs';
@@ -15,5 +16,6 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     if (!c || c.agentId !== s.uid) return forbidden();
   }
   await deletePayment(p.id);
+  await unlinkMoney('payment', p.id, await actorOf(s));
   return json({ ok: true });
 }
