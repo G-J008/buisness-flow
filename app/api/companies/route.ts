@@ -11,6 +11,7 @@ export async function POST(req: Request) {
   const name = String(b.name || '').trim();
   if (!name) return bad('name required');
   const productType = String(b.productType || 'Item').trim() || 'Item';
-  const company = await createCompany(name, productType);
+  const kind = b.kind === 'construction' ? 'construction' : 'commerce';
+  const company = await createCompany(name, kind === 'construction' ? 'Obra' : productType, kind);
   return json({ ok: true, company });
 }

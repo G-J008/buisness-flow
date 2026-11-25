@@ -49,11 +49,11 @@ POST.admin=()=>renderAdmin();
 function renderAdmin(){
   document.getElementById('adminCoBody').innerHTML=tr(DB.companies.map(c=>`<tr>
     <td class="st-head"><div class="row-flex"><span class="avatar" style="border-radius:9px;background:${avColor(c.name)}" data-u>${c.logo?`<img src="${c.logo}">`:escHtml(initials(c.name))}</span><b data-u>${escHtml(c.name)}</b></div></td>
-    <td data-label="Product type"><span class="tag" data-u>${escHtml(c.productType)}</span></td>
+    <td data-label="Product type"><span class="tag" data-u>${c.kind==='construction'?'Construcción y Obras':escHtml(c.productType)}</span></td>
     <td class="num" data-label="Users">${DB.users.filter(u=>u.companyId===c.id).length}</td>
     <td class="num" data-label="Inventory">${DB.inventory.filter(i=>i.companyId===c.id).length}</td>
     <td class="num" data-label="Sales">${DB.sales.filter(s=>s.companyId===c.id).length}</td>
-    <td class="num st-act"><button class="btn ghost sm" onclick="switchCompany('${c.id}').then(()=>go('dashboard'))">Open →</button></td></tr>`).join('')
+    <td class="num st-act"><span class="row-flex" style="justify-content:flex-end;gap:2px"><button class="btn ghost sm" onclick="switchCompany('${c.id}').then(()=>go('dashboard'))">Open →</button><button class="btn ghost sm danger" aria-label="Delete company" title="Delete company" onclick="delCompany('${c.id}')">${trash()}</button></span></td></tr>`).join('')
     ||`<tr><td colspan="6" class="st-block"><div class="empty"><div class="big">No companies</div>Create your first company to begin.</div></td></tr>`);
   document.getElementById('adminUserBody').innerHTML=tr(DB.users.map(u=>{ const co=u.companyId?DB.companies.find(c=>c.id===u.companyId):null;
     return `<tr>
@@ -61,6 +61,18 @@ function renderAdmin(){
     <td class="muted" data-label="Username"><i data-u>@${escHtml(u.username)}</i></td><td data-label="Role"><span class="role-badge role-${u.role}" style="display:inline-block" data-u>${roleLabel(u.role)}</span></td>
     <td data-label="Company">${u.companyId?`<i data-u>${escHtml(co?co.name:'—')}</i>`:'<span class="muted">All companies</span>'}</td>
     <td class="num st-act"><span class="row-flex" style="justify-content:flex-end;gap:2px">${u.id!==session.user.id?`<button class="btn ghost sm" onclick="openPwReset('${u.id}')">Reset password</button><button class="btn ghost sm danger" aria-label="Delete" onclick="delUser('${u.id}')">${trash()}</button>`:''}</span></td></tr>`; }).join(''));
+}
+// Only companies without data can be deleted; the server says what is keeping a company in use.
+const USAGE_L={inventory:['inventory items','artículos de inventario'],sales:['sales','ventas'],expenses:['expenses','gastos'],revenues:['revenue entries','ingresos'],clients:['clients','clientes'],payments:['client payments','cobros'],cajaMovements:['caja movements','movimientos de caja'],suppliers:['suppliers','proveedores'],categories:['categories','categorías'],products:['products','productos'],itemTypes:['item types','tipos de ítem'],budgets:['budgets','presupuestos'],proposals:['proposals','propuestas'],projects:['projects','obras'],calendarPayments:['calendar payments','pagos del calendario'],reminders:['reminders','recordatorios']};
+async function delCompany(id,withUsers){
+  const c=DB.companies.find(x=>x.id===id); if(!c) return;
+  if(!withUsers&&!confirm(lang==='es'?`¿Eliminar la empresa "${c.name}"? Solo se puede si no tiene datos. No se puede deshacer.`:`Delete company "${c.name}"? Only possible if it has no data. This can't be undone.`)) return;
+  const res=await fetch('/api/companies/'+id+(withUsers?'?withUsers=1':''),{method:'DELETE'}); const d=await res.json().catch(()=>({}));
+  if(res.ok){ if(adminCompanyId===id) adminCompanyId=null; await loadState(adminCompanyId); buildCoSwitch(); refreshBrand(); buildNav(); refreshBalChip(); go('admin'); toast('Company deleted'); return; }
+  const i=lang==='es'?1:0;
+  if(d.error==='company in use'){ const parts=Object.entries(d.usage||{}).map(([k,n])=>n+' '+((USAGE_L[k]||[k,k])[i])); alert((lang==='es'?`"${c.name}" está en uso y no se puede eliminar. Tiene: `:`"${c.name}" is in use and can't be deleted. It has: `)+parts.join(', ')+'.'); return; }
+  if(d.error==='company has users'){ if(confirm((lang==='es'?'La empresa no tiene datos, pero tiene estos perfiles, que también se eliminarán: ':'The company has no data, but these profiles will be deleted too: ')+(d.users||[]).join(', ')+'.')) return delCompany(id,true); return; }
+  toast(apiErr({message:d.error||('HTTP '+res.status)}),'warn');
 }
 async function delUser(id){ try{ await apiReq('DELETE','/api/users/'+id); await reload(); buildCoSwitch(); toast('Profile removed'); }catch(e){ toast(apiErr(e),'warn'); } }
 
@@ -73,6 +85,9 @@ function viewSettings(){
   if(can('logo')&&c){ companyBlock=`<div class="card" style="padding:22px;margin-top:18px"><h3 class="panel-title" style="margin:0 0 2px;font-size:15px">Company branding</h3><div class="hint" style="margin-bottom:16px">Shown in the sidebar and on reports</div>
     <div class="form-grid"><div class="fg full"><label>Company name</label><input id="set_coname" value="${escHtml(c.name)}"></div>
     <div class="fg"><label>Product type (what you sell)</label><input id="set_ptype" value="${escHtml(c.productType)}"></div>
+    ${c.kind==='construction'?`<div class="fg"><label>RUC</label><input id="set_ruc" data-u value="${escHtml(c.ruc||'')}"></div><div class="fg"><label>Contact</label><input id="set_contact" value="${escHtml(c.contact||'')}" placeholder="e.g. Juan Pérez · 0981 000 000"></div>
+      <div class="fg"><label>Email</label><input id="set_email" value="${escHtml(c.email||'')}"></div><div class="fg"><label>Default margin %</label><input id="set_margin" inputmode="decimal" value="${c.defaultMargin!=null?c.defaultMargin:30}"></div>
+      <div class="fg full"><label>Bank details (printed on proposals)</label><textarea id="set_bank" rows="3">${escHtml(c.bankDetails||'')}</textarea></div>`:''}
     <div class="fg"><label>Company logo</label><div class="uploader"><span class="prev" id="logoPrev" style="background:${avColor(c.name)}">${c.logo?`<img src="${c.logo}">`:initials(c.name)}</span><input type="file" accept="image/*" id="logoFile" onchange="previewImg(this,'logoPrev')"></div></div></div>
     <div style="margin-top:16px"><button class="btn primary" onclick="saveCompany()">Save company</button></div></div>`; }
   return `<div class="card" style="padding:22px;max-width:640px"><h3 class="panel-title" style="margin:0 0 2px;font-size:15px">Your profile</h3><div class="hint" style="margin-bottom:16px">Personalize your account</div>
@@ -104,7 +119,7 @@ async function savePwReset(id){
   if(np!==val('rp_new2')){ document.getElementById('rp_new2').classList.add('err'); toast('The passwords do not match','warn'); return; }
   try{ await apiReq('PATCH','/api/users/'+id,{password:np}); closeModal(); toast('Password changed'); }catch(e){ toast(apiErr(e),'warn'); }
 }
-async function saveCompany(){ const c=activeCompany(); try{ await apiReq('PATCH','/api/companies/'+c.id,{name:val('set_coname'),productType:val('set_ptype'),logo:pendingLogo!=null?pendingLogo:undefined}); pendingLogo=null; await loadState(adminCompanyId); refreshBrand(); buildCoSwitch(); toast('Company updated'); go('settings'); }catch(e){ toast(apiErr(e),'warn'); } }
+async function saveCompany(){ const c=activeCompany(); try{ await apiReq('PATCH','/api/companies/'+c.id,{name:val('set_coname'),productType:val('set_ptype'),logo:pendingLogo!=null?pendingLogo:undefined,...(c.kind==='construction'?{ruc:val('set_ruc'),contact:val('set_contact'),email:val('set_email'),bankDetails:val('set_bank'),defaultMargin:parseDec(val('set_margin'))}:{})}); pendingLogo=null; await loadState(adminCompanyId); refreshBrand(); buildCoSwitch(); toast('Company updated'); go('settings'); }catch(e){ toast(apiErr(e),'warn'); } }
 
 /* ============================================================
    MODALS: Sale / Expense / Revenue / Client / User / Company
@@ -222,12 +237,13 @@ function openClient(){
       <div class="fg full"><label>Full name <span class="req">*</span></label><input id="c_name" placeholder="e.g. Roberto Duarte"></div>
       <div class="fg"><label>Phone</label><input id="c_phone" placeholder="+595 ..."></div>
       <div class="fg"><label>Email</label><input id="c_email" placeholder="name@mail.com"></div>
+      <div class="fg"><label>RUC</label><input id="c_ruc" placeholder="80012345-6"></div>
       ${canAssign?`<div class="fg full"><label>Assigned agent</label><select id="c_agent"><option value="${session.user.id}">${escHtml(session.user.name)} (me)</option>${agents.filter(a=>a.id!==session.user.id).map(a=>`<option data-u value="${a.id}">${escHtml(a.name)}</option>`).join('')}</select></div>`:''}
     </div></div><div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveClient()">Create client</button></div></div>`);
 }
 async function saveClient(){ const name=val('c_name').trim(); if(!name){document.getElementById('c_name').classList.add('err');toast('Enter a name','warn');return;}
   const agentId=can('allClients')?(val('c_agent')||session.user.id):session.user.id;
-  try{ await apiReq('POST','/api/clients',{companyId:activeCompanyId(),name,phone:val('c_phone').trim(),email:val('c_email').trim(),agentId}); closeModal(); await reload(); toast('Client created'); }catch(e){ toast(apiErr(e),'warn'); } }
+  try{ await apiReq('POST','/api/clients',{companyId:activeCompanyId(),name,phone:val('c_phone').trim(),email:val('c_email').trim(),ruc:val('c_ruc').trim(),agentId}); closeModal(); await reload(); toast('Client created'); }catch(e){ toast(apiErr(e),'warn'); } }
 
 function openUser(presetRole){
   const isAdmin=session.user.role==='admin';
@@ -256,9 +272,10 @@ function openCompany(){
   showModalHTML(`<div class="modal"><div class="modal-head"><div><h3>New company</h3><p>Starts empty with its own isolated database.</p></div><button class="x" onclick="closeModal()">${xIcon()}</button></div>
     <div class="modal-body"><div class="form-grid">
       <div class="fg full"><label>Company name <span class="req">*</span></label><input id="co_name" placeholder="e.g. Acme Electronics"></div>
-      <div class="fg full"><label>Product type (what they sell) <span class="req">*</span></label><input id="co_ptype" placeholder="e.g. Watch, Phone, Shoe" value="Item"></div>
+      <div class="fg full"><label>Business type <span class="req">*</span></label><select id="co_kind" onchange="document.getElementById('co_ptfg').style.display=this.value==='construction'?'none':'flex'"><option value="commerce">Item retail</option><option value="construction">Construction and projects</option></select></div>
+      <div class="fg full" id="co_ptfg"><label>Product type (what they sell) <span class="req">*</span></label><input id="co_ptype" placeholder="e.g. Watch, Phone, Shoe" value="Item"></div>
     </div><div class="hint" style="margin-top:6px">Tip: after creating, add a manager profile so they can sign in.</div></div>
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="saveCompanyNew()">Create company</button></div></div>`);
 }
 async function saveCompanyNew(){ const name=val('co_name').trim(),pt=val('co_ptype').trim()||'Item'; if(!name){document.getElementById('co_name').classList.add('err');toast('Enter a name','warn');return;}
-  try{ const r=await apiReq('POST','/api/companies',{name,productType:pt}); adminCompanyId=r.company.id; closeModal(); await loadState(adminCompanyId); buildCoSwitch(); refreshBrand(); toast('Company created — now add a manager'); go('admin'); }catch(e){ toast(apiErr(e),'warn'); } }
+  try{ const r=await apiReq('POST','/api/companies',{name,productType:pt,kind:val('co_kind')}); adminCompanyId=r.company.id; closeModal(); await loadState(adminCompanyId); buildCoSwitch(); refreshBrand(); toast('Company created — now add a manager'); go('admin'); }catch(e){ toast(apiErr(e),'warn'); } }

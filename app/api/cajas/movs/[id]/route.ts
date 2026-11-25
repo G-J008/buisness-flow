@@ -1,6 +1,7 @@
 import { requireSession, unauthorized, forbidden, bad, json, canManageMoney, resolveCompanyId, actorOf } from '@/lib/api';
 import { getMov, editMov, deleteMov } from '@/lib/cajas';
 import { getSale, getExpense, getRevenue, getPayment } from '@/lib/store';
+import { getRow } from '@/lib/obra';
 
 export const runtime = 'nodejs';
 
@@ -16,7 +17,7 @@ async function load(id: string) {
 
 // Amount in Gs of whatever created a linked movement.
 async function originPYG(m: any) {
-  const get: any = { sale: getSale, expense: getExpense, revenue: getRevenue, payment: getPayment }[m.refType];
+  const get: any = { sale: getSale, expense: getExpense, revenue: getRevenue, payment: getPayment, cpay: (id: string) => getRow('payments', id) }[m.refType];
   if (!get || !m.refId) return null;
   const o = await get(m.refId);
   return o ? Number(o.price ?? o.amount) || 0 : null;

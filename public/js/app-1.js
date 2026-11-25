@@ -47,6 +47,9 @@ const ES={
   "Reset password":"Restablecer contraseña"," will sign in with the new password.":" entrará con la contraseña nueva.","Change password":"Cambiar contraseña","At least 8 characters":"Mínimo 8 caracteres",
   "Current password":"Contraseña actual","New password":"Contraseña nueva","Repeat new password":"Repetir contraseña nueva","Save password":"Guardar contraseña","Password changed":"Contraseña cambiada",
   "The passwords do not match":"Las contraseñas no coinciden","password too short":"La contraseña debe tener al menos 8 caracteres","current password is incorrect":"La contraseña actual es incorrecta",
+  "Business type":"Tipo de negocio","Item retail":"Comercio de artículos","Construction and projects":"Construcción y Obras","Default margin %":"Margen por defecto %",
+  "Bank details (printed on proposals)":"Datos bancarios (salen en las propuestas)","Contact":"Contacto","e.g. Juan Pérez · 0981 000 000":"ej. Juan Pérez · 0981 000 000",
+  "Company deleted":"Empresa eliminada","Delete company":"Eliminar empresa",
   // v4 — quantity, real profit, reports, mobile
   "Sign out":"Cerrar sesión","View all":"Ver todo","Name":"Nombre","e.g. Watch, Phone, Shoe":"ej. Reloj, Celular, Zapato","e.g. ":"ej. ","Unit cost":"Costo unit.","More":"Más","Sections":"Secciones",
   "Month result":"Resultado del mes","Profit is what remains after the cost of what you sold":"La ganancia es lo que queda después del costo de lo que vendiste",
@@ -278,7 +281,7 @@ async function loadState(companyId){
   session.user=st.me;
   DB.companies=st.companies||[]; DB.users=st.users||[]; DB.inventory=st.inventory||[];
   DB.clients=st.clients||[]; DB.sales=st.sales||[]; DB.expenses=st.expenses||[]; DB.revenues=st.revenues||[]; DB.payments=st.payments||[];
-  DB.cajas=st.cajas||[]; DB.cajaMovs=st.cajaMovs||[]; DB.cajaLog=st.cajaLog||[];
+  DB.cajas=st.cajas||[]; DB.cajaMovs=st.cajaMovs||[]; DB.cajaLog=st.cajaLog||[]; DB.obra=st.obra||null;
   adminCompanyId=st.activeCompanyId||null;
   indexState();
   return st;
