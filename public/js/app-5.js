@@ -53,7 +53,7 @@ function renderAdmin(){
     <td class="num" data-label="Users">${DB.users.filter(u=>u.companyId===c.id).length}</td>
     <td class="num" data-label="Inventory">${DB.inventory.filter(i=>i.companyId===c.id).length}</td>
     <td class="num" data-label="Sales">${DB.sales.filter(s=>s.companyId===c.id).length}</td>
-    <td class="num st-act"><button class="btn ghost sm" onclick="switchCompany('${c.id}').then(()=>go('dashboard'))">Open →</button></td></tr>`).join('')
+    <td class="num st-act"><span class="row-flex" style="justify-content:flex-end;gap:2px"><button class="btn ghost sm" onclick="switchCompany('${c.id}').then(()=>go('dashboard'))">Open →</button><button class="btn ghost sm danger" aria-label="Delete company" title="Delete company" onclick="delCompany('${c.id}')">${trash()}</button></span></td></tr>`).join('')
     ||`<tr><td colspan="6" class="st-block"><div class="empty"><div class="big">No companies</div>Create your first company to begin.</div></td></tr>`);
   document.getElementById('adminUserBody').innerHTML=tr(DB.users.map(u=>{ const co=u.companyId?DB.companies.find(c=>c.id===u.companyId):null;
     return `<tr>
@@ -61,6 +61,18 @@ function renderAdmin(){
     <td class="muted" data-label="Username"><i data-u>@${escHtml(u.username)}</i></td><td data-label="Role"><span class="role-badge role-${u.role}" style="display:inline-block" data-u>${roleLabel(u.role)}</span></td>
     <td data-label="Company">${u.companyId?`<i data-u>${escHtml(co?co.name:'—')}</i>`:'<span class="muted">All companies</span>'}</td>
     <td class="num st-act"><span class="row-flex" style="justify-content:flex-end;gap:2px">${u.id!==session.user.id?`<button class="btn ghost sm" onclick="openPwReset('${u.id}')">Reset password</button><button class="btn ghost sm danger" aria-label="Delete" onclick="delUser('${u.id}')">${trash()}</button>`:''}</span></td></tr>`; }).join(''));
+}
+// Only companies without data can be deleted; the server says what is keeping a company in use.
+const USAGE_L={inventory:['inventory items','artículos de inventario'],sales:['sales','ventas'],expenses:['expenses','gastos'],revenues:['revenue entries','ingresos'],clients:['clients','clientes'],payments:['client payments','cobros'],cajaMovements:['caja movements','movimientos de caja'],suppliers:['suppliers','proveedores'],categories:['categories','categorías'],products:['products','productos'],itemTypes:['item types','tipos de ítem'],budgets:['budgets','presupuestos'],proposals:['proposals','propuestas'],projects:['projects','obras'],calendarPayments:['calendar payments','pagos del calendario'],reminders:['reminders','recordatorios']};
+async function delCompany(id,withUsers){
+  const c=DB.companies.find(x=>x.id===id); if(!c) return;
+  if(!withUsers&&!confirm(lang==='es'?`¿Eliminar la empresa "${c.name}"? Solo se puede si no tiene datos. No se puede deshacer.`:`Delete company "${c.name}"? Only possible if it has no data. This can't be undone.`)) return;
+  const res=await fetch('/api/companies/'+id+(withUsers?'?withUsers=1':''),{method:'DELETE'}); const d=await res.json().catch(()=>({}));
+  if(res.ok){ if(adminCompanyId===id) adminCompanyId=null; await loadState(adminCompanyId); buildCoSwitch(); refreshBrand(); buildNav(); refreshBalChip(); go('admin'); toast('Company deleted'); return; }
+  const i=lang==='es'?1:0;
+  if(d.error==='company in use'){ const parts=Object.entries(d.usage||{}).map(([k,n])=>n+' '+((USAGE_L[k]||[k,k])[i])); alert((lang==='es'?`"${c.name}" está en uso y no se puede eliminar. Tiene: `:`"${c.name}" is in use and can't be deleted. It has: `)+parts.join(', ')+'.'); return; }
+  if(d.error==='company has users'){ if(confirm((lang==='es'?'La empresa no tiene datos, pero tiene estos perfiles, que también se eliminarán: ':'The company has no data, but these profiles will be deleted too: ')+(d.users||[]).join(', ')+'.')) return delCompany(id,true); return; }
+  toast(apiErr({message:d.error||('HTTP '+res.status)}),'warn');
 }
 async function delUser(id){ try{ await apiReq('DELETE','/api/users/'+id); await reload(); buildCoSwitch(); toast('Profile removed'); }catch(e){ toast(apiErr(e),'warn'); } }
 

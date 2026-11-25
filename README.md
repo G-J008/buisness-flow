@@ -14,6 +14,8 @@ Hojas de una empresa de Construcción y Obras:
 
 Los vendedores arman presupuestos y propuestas viendo precios con el margen ya incluido: nunca reciben costos de proveedores ni el margen. El margen por defecto y los datos de la propuesta (RUC, contacto, email, datos bancarios) se cargan en Perfil y Ajustes.
 
+Consola de Admin: una empresa sin datos se puede eliminar (junto con sus perfiles, previa confirmación). Si tiene ventas, inventario, clientes, movimientos de caja o datos de construcción, la app indica qué tiene y no la borra.
+
 Base de datos: tablas nuevas `c_*` y columnas nuevas (`company.kind`, datos de propuesta, `client.ruc`). Las empresas existentes quedan como "Comercio de artículos".
 
 ## Novedades (nov 2026, segunda entrega)

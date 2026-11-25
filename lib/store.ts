@@ -51,6 +51,28 @@ export async function updateCompany(id: string, f: { [k: string]: any }) {
   return getCompany(id);
 }
 
+// What a company holds. Anything here means the company is in use and can't be deleted.
+const USAGE: [string, string][] = [
+  ['inventory', 'inventory'], ['sales', 'sale'], ['expenses', 'expense'], ['revenues', 'revenue'], ['clients', 'client'],
+  ['payments', 'client_payment'], ['cajaMovements', 'caja_mov'], ['suppliers', 'c_supplier'], ['categories', 'c_category'],
+  ['products', 'c_product'], ['itemTypes', 'c_itemtype'], ['budgets', 'c_budget'], ['proposals', 'c_proposal'],
+  ['projects', 'c_project'], ['calendarPayments', 'c_payment'], ['reminders', 'c_reminder'],
+];
+export async function companyUsage(id: string) {
+  const out: Record<string, number> = {};
+  for (const [k, t] of USAGE) {
+    const n = Number((await q(`SELECT COUNT(*) AS n FROM ${t} WHERE "companyId"=$1`, [id])).rows[0].n);
+    if (n) out[k] = n;
+  }
+  return out;
+}
+// Only for companies without data: removes its empty cajas, its logs, its user profiles and the company.
+export async function deleteCompany(id: string) {
+  for (const t of ['caja_log', 'caja', 'c_log', 'c_task']) await q(`DELETE FROM ${t} WHERE "companyId"=$1`, [id]);
+  await q('DELETE FROM app_user WHERE "companyId"=$1', [id]);
+  await q('DELETE FROM company WHERE id=$1', [id]);
+}
+
 /* ---------- users ---------- */
 export async function listAllUsers() {
   return (await q('SELECT * FROM app_user ORDER BY "createdAt" ASC')).rows;

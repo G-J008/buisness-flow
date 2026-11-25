@@ -49,6 +49,7 @@ const ES={
   "The passwords do not match":"Las contraseñas no coinciden","password too short":"La contraseña debe tener al menos 8 caracteres","current password is incorrect":"La contraseña actual es incorrecta",
   "Business type":"Tipo de negocio","Item retail":"Comercio de artículos","Construction and projects":"Construcción y Obras","Default margin %":"Margen por defecto %",
   "Bank details (printed on proposals)":"Datos bancarios (salen en las propuestas)","Contact":"Contacto","e.g. Juan Pérez · 0981 000 000":"ej. Juan Pérez · 0981 000 000",
+  "Company deleted":"Empresa eliminada","Delete company":"Eliminar empresa",
   // v4 — quantity, real profit, reports, mobile
   "Sign out":"Cerrar sesión","View all":"Ver todo","Name":"Nombre","e.g. Watch, Phone, Shoe":"ej. Reloj, Celular, Zapato","e.g. ":"ej. ","Unit cost":"Costo unit.","More":"Más","Sections":"Secciones",
   "Month result":"Resultado del mes","Profit is what remains after the cost of what you sold":"La ganancia es lo que queda después del costo de lo que vendiste",
