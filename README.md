@@ -14,6 +14,13 @@ Hojas de una empresa de Construcción y Obras:
 
 Los vendedores arman presupuestos y propuestas viendo precios con el margen ya incluido: nunca reciben costos de proveedores ni el margen. El margen por defecto y los datos de la propuesta (RUC, contacto, email, datos bancarios) se cargan en Perfil y Ajustes.
 
+**Importar desde Excel** (Base de datos): se pega la tabla Proveedor · Categoría · Producto · Unidad · Precio · Código, con plantilla para descargar.
+- Antes de guardar se muestra cada fila como nueva, actualiza precio, sin cambios, posible duplicado o error.
+- Los nombres se comparan sin mayúsculas, tildes ni espacios ("Fumé 6 mm" = "FUME 6MM"). Si hay código, el código identifica el producto. Nombres con números distintos (6 mm / 8 mm) son productos distintos.
+- El servidor revisa fila por fila: las filas repetidas, los duplicados exactos y los errores se omiten y se informan, y el resto se carga.
+- Los formularios también rechazan duplicados exactos de proveedor, categoría, producto y tipo de ítem.
+- Los tipos de ítem también se importan, una fila por parte.
+
 Consola de Admin: una empresa sin datos se puede eliminar (junto con sus perfiles, previa confirmación). Si tiene ventas, inventario, clientes, movimientos de caja o datos de construcción, la app indica qué tiene y no la borra.
 
 Base de datos: tablas nuevas `c_*` y columnas nuevas (`company.kind`, datos de propuesta, `client.ruc`). Las empresas existentes quedan como "Comercio de artículos".

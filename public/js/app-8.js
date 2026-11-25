@@ -13,7 +13,7 @@ const UNIT_L={m2:'m²',ml:'metro lineal',un:'unidad'};
 const UNIT_S={m2:'/ m²',ml:'/ m',un:'c/u'};
 const esc=t=>escHtml(t==null?'':t);
 const fmtNum=(n,d)=>(Number(n)||0).toLocaleString('es-PY',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
-const OERR={'forbidden':'No tenés permiso para esto','supplier has products':'El proveedor tiene productos: eliminalos primero','category has products':'La categoría tiene productos: movelos o eliminalos primero',
+const OERR={'duplicate':'Ya existe uno igual (mismo nombre, o mismo código del mismo proveedor)','forbidden':'No tenés permiso para esto','supplier has products':'El proveedor tiene productos: eliminalos primero','category has products':'La categoría tiene productos: movelos o eliminalos primero',
   'mark the payment as pending before changing the amount':'Marcá el pago como pendiente antes de cambiar el monto','already paid':'Ya está pagado','invalid caja':'Caja inválida','exchange rate required':'Ingresá la cotización',
   'not a construction company':'Esta empresa no es de Construcción y Obras'};
 const oErr=e=>{ const m=apiErr(e); return OERR[m]||(m.endsWith(' required')?'Completá los campos obligatorios':m.startsWith('invalid ')?'Hay un dato inválido':m); };
@@ -428,7 +428,8 @@ async function unpayCPay(id){ if(!confirm('¿Volver a pendiente? Se quita el mov
 let dbTab='suppliers', dbSup='', dbCat='';
 function viewObraDb(){
   const c=activeCompany(); if(!c) return emptyState('Sin empresa','Elegí una empresa.','shield');
-  const act={suppliers:`<button class="btn primary" onclick="openSupplier()">${plus()}Nuevo proveedor</button>`,products:`<button class="btn primary" onclick="openProduct()">${plus()}Nuevo producto</button>`,categories:'',itemtypes:`<button class="btn primary" onclick="openItemType()">${plus()}Nuevo tipo de ítem</button>`}[dbTab];
+  const imp=`<button class="btn" onclick="openImport()">Importar desde Excel</button>`;
+  const act={suppliers:imp+`<button class="btn primary" onclick="openSupplier()">${plus()}Nuevo proveedor</button>`,products:imp+`<button class="btn primary" onclick="openProduct()">${plus()}Nuevo producto</button>`,categories:imp,itemtypes:`<button class="btn" onclick="openImportTypes()">Importar desde Excel</button><button class="btn primary" onclick="openItemType()">${plus()}Nuevo tipo de ítem</button>`}[dbTab];
   return sectionHead('Base de datos','Proveedores, sus productos con precio y los tipos de ítem que usás en los presupuestos',act)
    +tabsHTML(dbTab,[['suppliers','Proveedores'],['products','Productos y precios'],['categories','Categorías'],['itemtypes','Tipos de ítem']],'setDbTab')+`<div id="dbBody" style="margin-top:12px"></div>`;
 }
@@ -449,7 +450,7 @@ function renderDb(){
     el.innerHTML=`<div class="card table-card"><div class="table-tools"><select class="input" onchange="dbSup=this.value;renderDb()"><option value="">Todos los proveedores</option>${O.suppliers.map(s=>`<option value="${s.id}" ${s.id===dbSup?'selected':''}>${esc(s.name)}</option>`).join('')}</select>
       <select class="input" onchange="dbCat=this.value;renderDb()"><option value="">Todas las categorías</option>${O.categories.map(c=>`<option value="${c.id}" ${c.id===dbCat?'selected':''}>${esc(c.name)}</option>`).join('')}</select><div class="spacer"></div><span class="hint">Cambiá el precio y presioná Enter para guardarlo</span></div>
       <div class="tbl-scroll"><table class="stack"><thead><tr><th>Producto</th><th>Proveedor</th><th>Categoría</th><th>Unidad</th><th class="num">Precio (₲)</th><th>Actualizado</th><th></th></tr></thead><tbody>
-      ${ps.map(p=>`<tr><td class="st-head"><b>${esc(p.name)}</b></td><td data-label="Proveedor">${esc(supName(p.supplierId))}</td><td data-label="Categoría">${esc(catName(p.categoryId))}</td><td data-label="Unidad">${UNIT_L[p.unit]||p.unit}</td>
+      ${ps.map(p=>`<tr><td class="st-head"><b>${esc(p.name)}</b>${p.code?`<div class="cell-sub">Código ${esc(p.code)}</div>`:''}</td><td data-label="Proveedor">${esc(supName(p.supplierId))}</td><td data-label="Categoría">${esc(catName(p.categoryId))}</td><td data-label="Unidad">${UNIT_L[p.unit]||p.unit}</td>
         <td class="num" data-label="Precio"><input class="input price-in" inputmode="numeric" value="${fmtNum(p.price)}" onkeydown="if(event.key==='Enter')this.blur()" onchange="savePrice('${p.id}',this.value)"></td><td data-label="Actualizado">${fmtStamp(p.updatedAt)}</td>
         <td class="num st-act"><span class="row-flex" style="justify-content:flex-end;gap:2px"><button class="btn ghost sm" onclick="openProduct('${p.id}')">Editar</button><button class="btn ghost sm danger" aria-label="Eliminar" onclick="oDelete('products','${p.id}','el producto')">${trash()}</button></span></td></tr>`).join('')
       ||`<tr><td colspan="7" class="st-block"><div class="empty"><div class="big">Sin productos${dbSup||dbCat?' con este filtro':''}</div>${O.suppliers.length&&O.categories.length?'Cargá los productos de cada proveedor con su precio.':'Primero creá un proveedor y una categoría.'}</div></td></tr>`}</tbody></table></div></div>`;
@@ -473,11 +474,11 @@ function openProduct(id){ const p=(id&&oById(OB().products,id))||{supplierId:dbS
   if(!OB().suppliers.length||!OB().categories.length){ oToast('Primero creá un proveedor y una categoría','warn'); return; }
   oModal(`<div class="modal">${modalHead(id?'Editar producto':'Nuevo producto','El precio de cada producto queda con su fecha de actualización.')}<div class="modal-body"><div class="form-grid">
     ${oSel('pd_sup','Proveedor',OB().suppliers.map(s=>[s.id,s.name]),p.supplierId,{req:1})}${oSel('pd_cat','Categoría',OB().categories.map(c=>[c.id,c.name]),p.categoryId,{req:1})}
-    ${oInput('pd_name','Producto',p.name,{full:1,req:1,ph:'ej. Fumé 6 mm'})}${oSel('pd_unit','Se cotiza por',[['m2','Metro cuadrado (m²)'],['ml','Metro lineal (perímetro)'],['un','Unidad']],p.unit)}
+    ${oInput('pd_name','Producto',p.name,{req:1,ph:'ej. Fumé 6 mm'})}${oInput('pd_code','Código (opcional)',p.code,{ph:'como figura en la lista del proveedor'})}${oSel('pd_unit','Se cotiza por',[['m2','Metro cuadrado (m²)'],['ml','Metro lineal (perímetro)'],['un','Unidad']],p.unit)}
     <div class="fg"><label>Precio (₲) <span class="req">*</span></label><input id="pd_price" inputmode="numeric" value="${p.price!=null?fmtNum(p.price):''}"></div></div></div>${modalFoot(`saveProduct('${id||''}')`)}</div>`); }
 async function saveProduct(id){ const name=val('pd_name').trim(), price=parseDec(val('pd_price'));
   let ok=true; [['pd_name',!!name],['pd_price',val('pd_price').trim()!==''&&price>=0]].forEach(([k,v])=>{ if(!v){ document.getElementById(k).classList.add('err'); ok=false; } }); if(!ok) return;
-  if(await oSave('products',id||null,{supplierId:val('pd_sup'),categoryId:val('pd_cat'),name,unit:val('pd_unit'),price},id?'Producto actualizado':'Producto creado')) closeModal(); }
+  if(await oSave('products',id||null,{supplierId:val('pd_sup'),categoryId:val('pd_cat'),name,code:val('pd_code'),unit:val('pd_unit'),price},id?'Producto actualizado':'Producto creado')) closeModal(); }
 async function savePrice(id,v){ const price=parseDec(v); const p=oById(OB().products,id); if(!p||price===+p.price) return; await oSave('products',id,{price},'Precio actualizado'); }
 async function addCategory(){ const name=val('catName').trim(); if(!name){ document.getElementById('catName').classList.add('err'); return; } await oSave('categories',null,{name},'Categoría creada'); }
 async function seedCategories(){ for(const n of ['Vidrios','Perfiles','Accesorios']){ try{ await oApi('POST','categories',null,{name:n}); }catch(e){} } await reload(); oToast('Categorías creadas'); }
@@ -506,4 +507,97 @@ function viewObraClients(){
    ${cls.map(c=>`<tr><td class="st-head"><b>${esc(c.name)}</b></td><td data-label="RUC">${esc(c.ruc||'—')}</td><td data-label="Contacto">${esc([c.phone,c.email].filter(Boolean).join(' · '))||'—'}</td>
      <td class="num" data-label="Presupuestos">${OB().budgets.filter(b=>b.clientId===c.id).length}</td><td class="num" data-label="Obras">${OB().projects.filter(p=>p.clientId===c.id).length}</td></tr>`).join('')
      ||'<tr><td colspan="5" class="st-block"><div class="empty"><div class="big">Sin clientes</div>Los datos del cliente se usan en presupuestos y propuestas.</div></td></tr>'}</tbody></table></div></div>`;
+}
+
+/* ============================================================
+   IMPORTADOR — pegar desde Excel. El servidor revisa fila por fila: duplicados y errores se omiten
+   y se informan, el resto de la planilla se carga igual.
+   ============================================================ */
+const IMP_HEAD={supplier:['proveedor','supplier'],category:['categoria','category','rubro'],product:['producto','descripcion','nombre','item','articulo'],unit:['unidad','unit','u.m','um'],price:['precio','price','costo','valor'],code:['codigo','code','cod','sku','ref'],
+  type:['tipo de item','tipo','item type'],part:['parte','part'],laborMode:['mano de obra','labor','se cobra'],laborRate:['valor mano de obra','valor','monto']};
+const nrm=s=>String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+function splitTable(text){
+  const lines=String(text||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  if(!lines.length) return [];
+  const d=lines[0].includes('\t')?'\t':lines[0].includes(';')?';':',';
+  return lines.map(l=>l.split(d).map(c=>c.trim().replace(/^"(.*)"$/,'$1')));
+}
+// Columns come from a header row when there is one; otherwise from the template order.
+function mapRows(table,fields,fallback){
+  if(!table.length) return {rows:[],header:false};
+  const head=table[0].map(nrm); const idx={};
+  fields.forEach(f=>{ const i=head.findIndex(h=>IMP_HEAD[f].some(k=>h===k||h.startsWith(k))); if(i>=0) idx[f]=i; });
+  const header=Object.keys(idx).length>=2;
+  const body=header?table.slice(1):table;
+  const order=header?null:fallback(table[0].length);
+  return {header,rows:body.map(r=>{ const o={}; fields.forEach((f,k)=>{ const i=header?idx[f]:order.indexOf(f); if(i!=null&&i>=0&&r[i]!=null) o[f]=r[i]; }); return o; }).filter(o=>Object.values(o).some(v=>String(v).trim()))};
+}
+const PROD_FIELDS=['supplier','category','product','unit','price','code'];
+const prodOrder=n=>n>=6?['supplier','category','product','unit','price','code']:n===5?['supplier','category','product','unit','price']:n===4?['category','product','unit','price']:n===3?['product','unit','price']:['product','price'];
+function downloadCSV(name,rows){ const csv='﻿'+rows.map(r=>r.map(c=>/[;"\n]/.test(c)?`"${String(c).replace(/"/g,'""')}"`:c).join(';')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
+function productTemplate(){ downloadCSV('plantilla-productos.csv',[['Proveedor','Categoría','Producto','Unidad','Precio','Código'],['Proveedor Alpha','Vidrios','Fumé 6 mm','m2','185000',''],['Proveedor Alpha','Perfiles','Amaderado','metro lineal','48000',''],['Proveedor Alpha','Accesorios','Rueda doble','unidad','18000','']]); }
+function itemTypeTemplate(){ downloadCSV('plantilla-tipos-de-item.csv',[['Tipo de ítem','Parte','Categoría','Mano de obra','Valor'],['Puerta mano amiga','Vidrio','Vidrios','por m2','60000'],['Puerta mano amiga','Perfil','Perfiles','',''],['Espejo','Vidrio','Vidrios','por ítem','50000']]); }
+
+let IMP=null;
+function openImport(){
+  IMP={text:'',defSup:'',defCat:'',preview:null,rows:null,decisions:{}};
+  renderImport();
+}
+function renderImport(){
+  if(!IMP.preview){
+    oModal(`<div class="modal wide">${modalHead('Importar productos','Copiá la tabla desde Excel y pegala acá. Antes de guardar vas a ver qué se crea, qué se actualiza y qué se omite.')}
+    <div class="modal-body"><div class="note">Columnas: <b>Proveedor · Categoría · Producto · Unidad · Precio · Código</b> (Código es opcional). Unidad: m², metro lineal o unidad; si falta, se supone por la categoría.
+      <a href="#" onclick="productTemplate();return false">Descargar plantilla</a></div>
+    <div class="form-grid">${oSel('im_sup','Proveedor para filas sin proveedor',OB().suppliers.map(s=>[s.name,s.name]),IMP.defSup,{blank:'—'})}${oSel('im_cat','Categoría para filas sin categoría',OB().categories.map(c=>[c.name,c.name]),IMP.defCat,{blank:'—'})}
+    <div class="fg full"><label>Tabla <span class="req">*</span></label><textarea id="im_text" rows="10" placeholder="Pegá acá (Ctrl+V) las filas copiadas de Excel, con o sin la fila de títulos" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px">${esc(IMP.text)}</textarea></div>
+    <div class="fg full"><label>…o elegí un archivo CSV</label><input type="file" accept=".csv,.txt,.tsv" onchange="readImportFile(this)"></div></div></div>
+    ${modalFoot('previewImport()','Revisar')}</div>`);
+    return;
+  }
+  const pv=IMP.preview; const cnt=s=>pv.filter(r=>r.status===s).length;
+  const ST={new:['Nuevo','cash'],update:['Actualiza','reserved'],same:['Sin cambios',''],similar:['¿Duplicado?','credit'],dup:['Repetido','credit'],error:['Error','credit']};
+  const toSave=pv.filter(r=>r.status==='new'||r.status==='update'||(r.status==='similar'&&(IMP.decisions[r.i]||'skip')!=='skip')).length;
+  const unitL=u=>u?UNIT_L[u]:'—';
+  oModal(`<div class="modal wide xwide">${modalHead('Revisá antes de importar',`${pv.length} filas leídas. Las filas repetidas o con error se omiten; el resto se guarda.`)}
+    <div class="modal-body"><div class="imp-chips"><span class="pill cash">${cnt('new')} nuevos</span><span class="pill reserved">${cnt('update')} actualizan</span><span class="pill">${cnt('same')} sin cambios</span>${cnt('similar')?`<span class="pill credit">${cnt('similar')} posibles duplicados</span>`:''}${cnt('dup')+cnt('error')?`<span class="pill credit">${cnt('dup')+cnt('error')} se omiten</span>`:''}</div>
+    ${cnt('similar')?'<div class="note">En los <b>posibles duplicados</b> elegí si es el mismo producto (se actualiza) o uno distinto (se crea). Si no elegís, se omite.</div>':''}
+    <div class="tbl-scroll" style="max-height:52vh;overflow-y:auto"><table class="stack imp-table"><thead><tr><th>#</th><th>Estado</th><th>Proveedor</th><th>Categoría</th><th>Producto</th><th>Unidad</th><th class="num">Precio</th></tr></thead><tbody>
+    ${pv.map(r=>`<tr class="${r.status==='error'||r.status==='dup'?'imp-off':''}"><td>${r.i+1}</td><td><span class="pill ${ST[r.status][1]}">${ST[r.status][0]}</span>${r.reason&&r.status!=='similar'?`<div class="cell-sub">${esc(r.reason)}</div>`:''}
+      ${r.status==='similar'?`<select class="input imp-dec" onchange="IMP.decisions[${r.i}]=this.value;renderImport()"><option value="skip" ${(IMP.decisions[r.i]||'skip')==='skip'?'selected':''}>Omitir</option>${r.candidates.map(c=>`<option value="${c.id}" ${IMP.decisions[r.i]===c.id?'selected':''}>Es el mismo que “${esc(c.name)}” (${fmt(c.price)})</option>`).join('')}<option value="new" ${IMP.decisions[r.i]==='new'?'selected':''}>Es otro: crear nuevo</option></select>`:''}</td>
+      <td>${esc(r.supplier)||'—'}${r.supplierNew&&r.supplier?' <span class="tag">nuevo</span>':''}</td><td>${esc(r.category)||'—'}${r.categoryNew&&r.category?' <span class="tag">nueva</span>':''}</td>
+      <td><b>${esc(r.product)||'—'}</b>${r.code?`<div class="cell-sub">Código ${esc(r.code)}</div>`:''}${r.existing&&r.existing.name!==r.product?`<div class="cell-sub">existe como “${esc(r.existing.name)}”</div>`:''}</td>
+      <td>${unitL(r.unit)}${r.unitGuessed?' <span class="cell-sub">(supuesta)</span>':''}</td>
+      <td class="num" style="white-space:nowrap">${r.existing&&r.existing.price!==r.price?`<span class="muted" style="text-decoration:line-through">${fmt(r.existing.price)}</span> `:''}${r.price!=null?fmt(r.price):'—'}</td></tr>`).join('')}
+    </tbody></table></div></div>
+    <div class="modal-foot"><button class="btn ghost" onclick="IMP.preview=null;renderImport()">← Volver</button><span style="flex:1"></span><button class="btn ghost" onclick="closeModal()">Cancelar</button><button class="btn primary" ${toSave?'':'disabled'} onclick="applyImportUI()">Importar ${toSave} ${toSave===1?'fila':'filas'}</button></div></div>`);
+}
+function readImportFile(input){ const f=input.files[0]; if(!f) return; const r=new FileReader(); r.onload=e=>{ document.getElementById('im_text').value=e.target.result; }; r.readAsText(f,'utf-8'); }
+async function previewImport(){
+  IMP.text=val('im_text'); IMP.defSup=val('im_sup'); IMP.defCat=val('im_cat');
+  const {rows}=mapRows(splitTable(IMP.text),PROD_FIELDS,prodOrder);
+  rows.forEach(r=>{ if(!r.supplier&&IMP.defSup) r.supplier=IMP.defSup; if(!r.category&&IMP.defCat) r.category=IMP.defCat; });
+  if(!rows.length){ document.getElementById('im_text').classList.add('err'); oToast('Pegá al menos una fila','warn'); return; }
+  try{ const r=await apiReq('POST','/api/obra/import',{companyId:activeCompanyId(),kind:'products',rows,dryRun:true}); IMP.rows=rows; IMP.preview=r.preview; IMP.decisions={}; renderImport(); }catch(e){ oToast(oErr(e),'warn'); }
+}
+async function applyImportUI(){
+  const btn=document.querySelector('.modal-foot .btn.primary'); if(btn){ btn.disabled=true; btn.textContent='Importando…'; }
+  try{ const r=await apiReq('POST','/api/obra/import',{companyId:activeCompanyId(),kind:'products',rows:IMP.rows,decisions:IMP.decisions}); await reload(); showImportResult(r.result,'productos'); }catch(e){ oToast(oErr(e),'warn'); if(btn){ btn.disabled=false; btn.textContent='Importar'; } }
+}
+function showImportResult(res,what){
+  const lines=[res.created!=null?`${res.created} ${what} creados`:'',res.updated?`${res.updated} actualizados`:'',res.unchanged?`${res.unchanged} sin cambios`:'',res.suppliersCreated?`${res.suppliersCreated} proveedores nuevos`:'',res.categoriesCreated?`${res.categoriesCreated} categorías nuevas`:''].filter(Boolean);
+  oModal(`<div class="modal">${modalHead('Importación terminada',lines.join(' · '))}<div class="modal-body">
+    ${res.problems&&res.problems.length?`<div class="panel-title" style="margin-bottom:6px">${res.problems.length} ${res.problems.length===1?'fila omitida':'filas omitidas'}</div><div class="facts" style="max-height:40vh;overflow-y:auto">${res.problems.map(p=>`<div class="fact"><div class="l">Fila ${p.row}</div><div class="a" style="font-weight:400;text-align:right">${esc(p.reason)}</div></div>`).join('')}</div>`:'<div class="note">Todas las filas se cargaron.</div>'}
+    </div><div class="modal-foot"><button class="btn primary" onclick="closeModal()">Listo</button></div></div>`);
+}
+function openImportTypes(){
+  oModal(`<div class="modal wide">${modalHead('Importar tipos de ítem','Una fila por parte. Los tipos que ya existen se omiten; las categorías que falten se crean.')}
+    <div class="modal-body"><div class="note">Columnas: <b>Tipo de ítem · Parte · Categoría · Mano de obra (por ítem / por m²) · Valor</b>. <a href="#" onclick="itemTypeTemplate();return false">Descargar plantilla</a></div>
+    <div class="fg full"><label>Tabla</label><textarea id="it_text" rows="10" style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px" placeholder="Pegá acá las filas copiadas de Excel"></textarea></div></div>
+    ${modalFoot('applyImportTypes()','Importar')}</div>`);
+}
+async function applyImportTypes(){
+  const {rows}=mapRows(splitTable(val('it_text')),['type','part','category','laborMode','laborRate'],()=>['type','part','category','laborMode','laborRate']);
+  if(!rows.length){ document.getElementById('it_text').classList.add('err'); return; }
+  try{ const r=await apiReq('POST','/api/obra/import',{companyId:activeCompanyId(),kind:'itemtypes',rows}); await reload(); showImportResult(r.result,'tipos de ítem'); }catch(e){ oToast(oErr(e),'warn'); }
 }

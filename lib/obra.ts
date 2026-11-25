@@ -4,6 +4,7 @@ import { q } from './db';
 import { genId, getCompany } from './store';
 import { linkMoney, unlinkMoney, checkLink, type Actor, type CajaLink } from './cajas';
 import { proposalItems, inflateLines, type Line } from './obra-calc';
+import { norm } from './obra-norm';
 
 type Role = 'admin' | 'manager' | 'sales';
 export type Ctx = { role: Role; uid: string; actor: Actor; companyId: string };
@@ -15,7 +16,7 @@ type Spec = { table: string; fields: Record<string, string>; write: Role[]; ownO
 export const ENTITIES: Record<string, Spec> = {
   suppliers: { table: 'c_supplier', write: MANAGERS, fields: { name: 'str!', phone: 'str', contact: 'str', notes: 'str' } },
   categories: { table: 'c_category', write: MANAGERS, fields: { name: 'str!' } },
-  products: { table: 'c_product', write: MANAGERS, logDetail: true, fields: { supplierId: 'ref:c_supplier!', categoryId: 'ref:c_category!', name: 'str!', unit: 'enum:m2|ml|un', price: 'num!' } },
+  products: { table: 'c_product', write: MANAGERS, logDetail: true, fields: { supplierId: 'ref:c_supplier!', categoryId: 'ref:c_category!', name: 'str!', unit: 'enum:m2|ml|un', price: 'num!', code: 'str' } },
   itemtypes: { table: 'c_itemtype', write: MANAGERS, fields: { name: 'str!', parts: 'json', laborMode: 'enum:item|m2', laborRate: 'num' } },
   budgets: { table: 'c_budget', write: ALL, ownOnly: true, fields: { title: 'str', clientId: 'ref:client', projectName: 'str', location: 'str', marginPct: 'num', lines: 'json', notes: 'str' } },
   proposals: { table: 'c_proposal', write: ALL, ownOnly: true, fields: { clientId: 'ref:client', clientName: 'str', clientRuc: 'str', projectName: 'str', location: 'str', items: 'json', paymentTerms: 'str', estimatedTime: 'str', bankDetails: 'str', notes: 'str', date: 'date' } },
@@ -136,6 +137,22 @@ function cleanItems(f: Record<string, any>) {
   f.total = items.reduce((t, it) => t + it.total, 0);
 }
 
+// Exact duplicates are refused one record at a time: same supplier name, category name, item type name,
+// or the same product (code, or name) for the same supplier. Names compare without capitals, accents or extra spaces.
+export async function findDuplicate(entity: string, f: Record<string, any>, companyId: string, selfId?: string) {
+  const rows = async (t: string, extra = '', args: any[] = []) =>
+    (await q(`SELECT * FROM ${t} WHERE "companyId"=$1 ${extra}`, [companyId, ...args])).rows.filter((r: any) => r.id !== selfId);
+  if (entity === 'suppliers' && f.name) return (await rows('c_supplier')).find((r: any) => norm(r.name) === norm(f.name)) || null;
+  if (entity === 'categories' && f.name) return (await rows('c_category')).find((r: any) => norm(r.name) === norm(f.name)) || null;
+  if (entity === 'itemtypes' && f.name) return (await rows('c_itemtype')).find((r: any) => norm(r.name) === norm(f.name)) || null;
+  if (entity === 'products' && f.supplierId) {
+    const same = await rows('c_product', 'AND "supplierId"=$2', [f.supplierId]);
+    if (f.code && norm(f.code)) { const byCode = same.find((r: any) => r.code && norm(r.code) === norm(f.code)); if (byCode) return byCode; }
+    if (f.name) return same.find((r: any) => norm(r.name) === norm(f.name)) || null;
+  }
+  return null;
+}
+
 export async function createEntity(entity: string, body: any, ctx: Ctx) {
   const spec = ENTITIES[entity];
   if (!spec) throw new ObraError('not found', 404);
@@ -143,6 +160,8 @@ export async function createEntity(entity: string, body: any, ctx: Ctx) {
   if (entity === 'proposals' && body.budgetId) return proposalFromBudget(String(body.budgetId), body, ctx);
   if (entity === 'payments' && body.direction === 'out' && !body.supplierId) throw new ObraError('supplierId required');
   const f = await clean(spec, body, ctx, false);
+  const dup = await findDuplicate(entity, f, ctx.companyId);
+  if (dup) throw new ObraError('duplicate', 409);
   const id = genId();
   const extra: Record<string, any> = {};
   if (entity === 'budgets') {
@@ -173,6 +192,10 @@ export async function updateEntity(entity: string, id: string, body: any, ctx: C
   if (entity === 'payments' && before.status === 'paid' && ('amount' in body || 'direction' in body))
     throw new ObraError('mark the payment as pending before changing the amount');
   const f = await clean(spec, body, ctx, true);
+  if (['suppliers', 'categories', 'itemtypes', 'products'].includes(entity) && ('name' in f || 'code' in f || 'supplierId' in f)) {
+    const dup = await findDuplicate(entity, { ...before, ...f }, ctx.companyId, id);
+    if (dup) throw new ObraError('duplicate', 409);
+  }
   if (entity === 'budgets') {
     const k = await marginFactor(ctx.companyId);
     if (ctx.role === 'sales') delete f.marginPct;
