@@ -34,7 +34,25 @@ ALTER TABLE sale ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
 ALTER TABLE sale ADD COLUMN IF NOT EXISTS "unitCost" DOUBLE PRECISION;
 CREATE TABLE IF NOT EXISTS caja (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, name TEXT NOT NULL, currency TEXT NOT NULL DEFAULT 'PYG', kind TEXT NOT NULL DEFAULT 'Efectivo', "sortOrder" INTEGER DEFAULT 100, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS caja_mov (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "cajaId" TEXT NOT NULL, direction TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL, "fxRate" DOUBLE PRECISION, date TEXT, description TEXT, "refType" TEXT NOT NULL DEFAULT 'manual', "refId" TEXT, "transferId" TEXT, "userId" TEXT, "userName" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(), "updatedAt" TIMESTAMPTZ, "updatedByName" TEXT);
-CREATE TABLE IF NOT EXISTS caja_log (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "movId" TEXT, "cajaId" TEXT, action TEXT NOT NULL, "userId" TEXT, "userName" TEXT, detail TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now())
+CREATE TABLE IF NOT EXISTS caja_log (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "movId" TEXT, "cajaId" TEXT, action TEXT NOT NULL, "userId" TEXT, "userName" TEXT, detail TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+ALTER TABLE company ADD COLUMN IF NOT EXISTS kind TEXT DEFAULT 'commerce';
+ALTER TABLE company ADD COLUMN IF NOT EXISTS ruc TEXT;
+ALTER TABLE company ADD COLUMN IF NOT EXISTS contact TEXT;
+ALTER TABLE company ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE company ADD COLUMN IF NOT EXISTS "bankDetails" TEXT;
+ALTER TABLE company ADD COLUMN IF NOT EXISTS "defaultMargin" DOUBLE PRECISION DEFAULT 30;
+ALTER TABLE client ADD COLUMN IF NOT EXISTS ruc TEXT;
+CREATE TABLE IF NOT EXISTS c_supplier (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, name TEXT NOT NULL, phone TEXT, contact TEXT, notes TEXT, "pricesUpdatedAt" TIMESTAMPTZ, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS c_category (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, name TEXT NOT NULL, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS c_product (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "supplierId" TEXT NOT NULL, "categoryId" TEXT NOT NULL, name TEXT NOT NULL, unit TEXT NOT NULL DEFAULT 'm2', price DOUBLE PRECISION NOT NULL DEFAULT 0, "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT now(), "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS c_itemtype (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, name TEXT NOT NULL, parts TEXT, "laborMode" TEXT DEFAULT 'item', "laborRate" DOUBLE PRECISION DEFAULT 0, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS c_budget (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, number INTEGER, title TEXT, "clientId" TEXT, "projectName" TEXT, location TEXT, "marginPct" DOUBLE PRECISION DEFAULT 0, lines TEXT, notes TEXT, "createdBy" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(), "updatedAt" TIMESTAMPTZ);
+CREATE TABLE IF NOT EXISTS c_proposal (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, number INTEGER, "budgetId" TEXT, "clientId" TEXT, "clientName" TEXT, "clientRuc" TEXT, "projectName" TEXT, location TEXT, items TEXT, total DOUBLE PRECISION DEFAULT 0, "paymentTerms" TEXT, "estimatedTime" TEXT, "bankDetails" TEXT, notes TEXT, date TEXT, "createdBy" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(), "updatedAt" TIMESTAMPTZ);
+CREATE TABLE IF NOT EXISTS c_project (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, name TEXT NOT NULL, "clientId" TEXT, location TEXT, "startDate" TEXT, status TEXT DEFAULT 'active', "budgetId" TEXT, "proposalId" TEXT, notes TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS c_task (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "projectId" TEXT NOT NULL, title TEXT NOT NULL, "dueDate" TEXT, done BOOLEAN DEFAULT false, "doneAt" TIMESTAMPTZ, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS c_reminder (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, text TEXT NOT NULL, date TEXT, done BOOLEAN DEFAULT false, "userId" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS c_payment (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, direction TEXT NOT NULL, "projectId" TEXT, "clientId" TEXT, "supplierId" TEXT, description TEXT, amount DOUBLE PRECISION NOT NULL DEFAULT 0, "dueDate" TEXT, method TEXT DEFAULT 'transferencia', "chequeNumber" TEXT, "chequeDate" TEXT, status TEXT DEFAULT 'pending', "paidAt" TEXT, "createdBy" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(), "updatedAt" TIMESTAMPTZ);
+CREATE TABLE IF NOT EXISTS c_log (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, entity TEXT, "entityId" TEXT, action TEXT NOT NULL, "userName" TEXT, detail TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now())
 `;
 
 async function ensureSchema(pool: AnyPool) {

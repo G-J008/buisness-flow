@@ -33,27 +33,33 @@ async function logout(){ try{ await apiReq('POST','/api/auth/logout'); }catch(e)
    NAV / BOOT
    ============================================================ */
 const NAV=[
-  {id:'dashboard',label:'Dashboard',group:'Overview',icon:'grid',show:()=>true},
-  {id:'charts',label:'Charts',group:'Overview',icon:'chart',show:()=>true},
-  {id:'flow',label:'Business Flow',group:'Modules',icon:'flow',show:()=>true},
+  {id:'dashboard',label:'Dashboard',group:'Overview',icon:'grid',show:()=>!isObra()},
+  {id:'charts',label:'Charts',group:'Overview',icon:'chart',show:()=>!isObra()},
+  {id:'obras',label:'Obras',group:'Overview',icon:'grid',show:()=>isObra()},
+  {id:'flow',label:'Business Flow',group:'Modules',icon:'flow',show:()=>!isObra()},
+  {id:'proposals',label:'Propuestas',group:'Modules',icon:'doc',show:()=>isObra()},
+  {id:'budgets',label:'Presupuestos',group:'Modules',icon:'flow',show:()=>isObra()},
+  {id:'calendar',label:'Calendario de pagos',group:'Modules',icon:'chart',show:()=>isObra()&&can('expenses')},
   {id:'cajas',label:'Cajas',group:'Modules',icon:'cash',show:()=>can('expenses')},
-  {id:'inventory',label:'Inventory',group:'Modules',icon:'box',show:()=>can('inventoryManage')},
+  {id:'obradb',label:'Base de datos',group:'Modules',icon:'box',show:()=>isObra()&&can('expenses')},
+  {id:'inventory',label:'Inventory',group:'Modules',icon:'box',show:()=>!isObra()&&can('inventoryManage')},
   {id:'clients',label:'Clients',group:'Modules',icon:'users',show:()=>true},
-  {id:'reports',label:'Monthly Reports',group:'Modules',icon:'doc',show:()=>can('reports')},
+  {id:'reports',label:'Monthly Reports',group:'Modules',icon:'doc',show:()=>!isObra()&&can('reports')},
   {id:'team',label:'Team',group:'Management',icon:'team',show:()=>can('team')},
   {id:'admin',label:'Admin Console',group:'Management',icon:'shield',show:()=>can('adminConsole')},
   {id:'settings',label:'Profile & Settings',group:'Account',icon:'cog',show:()=>true},
 ];
 let currentView='dashboard';
+function refreshBalChip(){ document.getElementById('balChip').style.display = can('profitCharts')&&!isObra()?'flex':'none'; }
 function bootApp(){
   buildNav(); buildCoSwitch(); refreshUserCard(); refreshBrand();
   // sales can't see profit charts / balance
-  document.getElementById('balChip').style.display = can('profitCharts')?'flex':'none';
+  refreshBalChip();
   go(session.user.role==='admin' && !DB.companies.length ? 'admin' : 'dashboard');
 }
-const SHORT={dashboard:['Home','Panel'],flow:['Flow','Flujo'],reports:['Reports','Reportes'],inventory:['Stock','Inventario'],clients:['Clients','Clientes'],team:['Team','Equipo'],admin:['Admin','Admin'],cajas:['Cajas','Cajas'],charts:['Charts','Gráficos'],settings:['Settings','Ajustes'],more:['More','Más']};
+const SHORT={dashboard:['Home','Panel'],flow:['Flow','Flujo'],reports:['Reports','Reportes'],inventory:['Stock','Inventario'],clients:['Clients','Clientes'],team:['Team','Equipo'],admin:['Admin','Admin'],cajas:['Cajas','Cajas'],charts:['Charts','Gráficos'],obras:['Obras','Obras'],proposals:['Propuestas','Propuestas'],budgets:['Presupuestos','Presup.'],budget:['Presupuesto','Presup.'],calendar:['Pagos','Pagos'],obradb:['Base de datos','Datos'],settings:['Settings','Ajustes'],more:['More','Más']};
 const shortLabel=id=>SHORT[id][lang==='es'?1:0];
-function mobilePrimary(){ const ids=can('reports')?['dashboard','flow','cajas','reports']:['dashboard','flow','clients']; return NAV.filter(n=>ids.includes(n.id)&&n.show()).sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); }
+function mobilePrimary(){ const ids=isObra()?(can('expenses')?['obras','budgets','calendar','proposals']:['obras','budgets','proposals','clients']):can('reports')?['dashboard','flow','cajas','reports']:['dashboard','flow','clients']; return NAV.filter(n=>ids.includes(n.id)&&n.show()).sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); }
 function buildNav(){
   const items=NAV.filter(n=>n.show());
   let html=''; let grp=null;
@@ -87,7 +93,7 @@ function buildCoSwitch(){
     el.innerHTML=`<span class="role-badge role-${session.user.role}">${roleLabel(session.user.role)}</span>`;
   }
 }
-async function switchCompany(id){ adminCompanyId=id; try{ await loadState(id); }catch(e){} refreshBrand(); buildCoSwitch(); go(currentView); }
+async function switchCompany(id){ adminCompanyId=id; try{ await loadState(id); }catch(e){} refreshBrand(); buildCoSwitch(); buildNav(); refreshBalChip(); go(currentView); }
 function refreshUserCard(){ const u=session.user;
   document.getElementById('ucAv').style.background=avColor(u.name);
   document.getElementById('ucAv').innerHTML=u.avatar?`<img src="${u.avatar}">`:initials(u.name);
@@ -96,14 +102,16 @@ function refreshUserCard(){ const u=session.user;
 }
 function refreshBrand(){ const c=activeCompany();
   document.getElementById('brandName').textContent=c?c.name:'Argus Technology';
-  document.getElementById('brandSub').textContent=c?(c.productType+(lang==='es'?' · negocio':' business')):'Commercial Software';
+  document.getElementById('brandSub').textContent=c?(c.kind==='construction'?(lang==='es'?'Construcción y Obras':'Construction'):(c.productType+(lang==='es'?' · negocio':' business'))):'Commercial Software';
   document.getElementById('brandLogo').innerHTML=c&&c.logo?`<img src="${c.logo}" alt="">`:MARK;
 }
 const MARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 12 4.5l7.5 15"/><circle cx="12" cy="15" r="1.7" fill="currentColor" stroke="none"/></svg>';
 
-const TITLES={cajas:'Cajas',charts:'Charts and past months',dashboard:'Dashboard',flow:'Business Flow',inventory:'Inventory',clients:'Clients',reports:'Monthly Reports',team:'Team Performance',admin:'Admin Console',settings:'Profile & Settings'};
+const TITLES={obras:'Obras',proposals:'Propuestas',budgets:'Presupuestos',budget:'Presupuesto',calendar:'Calendario de pagos',obradb:'Base de datos',cajas:'Cajas',charts:'Charts and past months',dashboard:'Dashboard',flow:'Business Flow',inventory:'Inventory',clients:'Clients',reports:'Monthly Reports',team:'Team Performance',admin:'Admin Console',settings:'Profile & Settings'};
 function go(v){
-  const nav=NAV.find(n=>n.id===v); if(nav&&!nav.show()){ v='dashboard'; }
+  if(isObra()&&['dashboard','charts','flow','inventory','reports'].includes(v)) v='obras';
+  if(!isObra()&&['obras','proposals','budgets','budget','calendar','obradb'].includes(v)) v='dashboard';
+  const nav=NAV.find(n=>n.id===v); if(nav&&!nav.show()){ v=isObra()?'obras':'dashboard'; }
   currentView=v;
   markNav(); closeSheet();
   document.getElementById('viewTitle').innerHTML=`<span class="t-full">${escHtml(tr(TITLES[v]||''))}</span><span class="t-short">${escHtml(SHORT[v]?shortLabel(v):tr(TITLES[v]||''))}</span>`;
@@ -114,7 +122,14 @@ function go(v){
   else if(v==='cajas') c.innerHTML=tr(viewCajas());
   else if(v==='charts') c.innerHTML=tr(viewCharts());
   else if(v==='inventory') c.innerHTML=tr(viewInventory());
-  else if(v==='clients') c.innerHTML=tr(viewClients());
+  else if(v==='clients') c.innerHTML=isObra()?viewObraClients():tr(viewClients());
+  // construction sheets are written in Spanish and skip the substring translator
+  else if(v==='obras') c.innerHTML=viewObras();
+  else if(v==='proposals') c.innerHTML=viewProposals();
+  else if(v==='budgets') c.innerHTML=viewBudgets();
+  else if(v==='budget') c.innerHTML=viewBudget();
+  else if(v==='calendar') c.innerHTML=viewCalendar();
+  else if(v==='obradb') c.innerHTML=viewObraDb();
   else if(v==='reports') c.innerHTML=tr(viewReports());
   else if(v==='team') c.innerHTML=tr(viewTeam());
   else if(v==='admin') c.innerHTML=tr(viewAdmin());

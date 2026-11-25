@@ -32,17 +32,19 @@ export async function getCompany(id: string) {
 export async function firstCompany() {
   return (await q('SELECT * FROM company ORDER BY "createdAt" ASC LIMIT 1')).rows[0] || null;
 }
-export async function createCompany(name: string, productType: string) {
+// kind: 'commerce' (sells items) or 'construction' (glass and construction projects). Fixed at creation.
+export async function createCompany(name: string, productType: string, kind = 'commerce') {
   const id = genId();
-  await q('INSERT INTO company (id, name, "productType") VALUES ($1,$2,$3)', [id, name, productType]);
+  await q('INSERT INTO company (id, name, "productType", kind) VALUES ($1,$2,$3,$4)', [id, name, productType, kind === 'construction' ? 'construction' : 'commerce']);
   return getCompany(id);
 }
-export async function updateCompany(id: string, f: { name?: string; productType?: string; logo?: string }) {
+const COMPANY_FIELDS: Record<string, string> = { name: 'name', productType: '"productType"', logo: 'logo', ruc: 'ruc', contact: 'contact', email: 'email', bankDetails: '"bankDetails"', defaultMargin: '"defaultMargin"' };
+export async function updateCompany(id: string, f: { [k: string]: any }) {
   const sets: string[] = [];
   const vals: any[] = [];
-  if (f.name !== undefined) { vals.push(f.name); sets.push(`name=$${vals.length}`); }
-  if (f.productType !== undefined) { vals.push(f.productType); sets.push(`"productType"=$${vals.length}`); }
-  if (f.logo !== undefined) { vals.push(f.logo); sets.push(`logo=$${vals.length}`); }
+  for (const [k, col] of Object.entries(COMPANY_FIELDS)) {
+    if (f[k] !== undefined) { vals.push(f[k]); sets.push(`${col}=$${vals.length}`); }
+  }
   if (!sets.length) return getCompany(id);
   vals.push(id);
   await q(`UPDATE company SET ${sets.join(', ')} WHERE id=$${vals.length}`, vals);
@@ -139,7 +141,7 @@ export async function listClients(companyId: string, agentId?: string) {
 }
 export async function createClient(d: any) {
   const id = genId();
-  await q('INSERT INTO client (id,"companyId","agentId",name,phone,email) VALUES ($1,$2,$3,$4,$5,$6)', [id, d.companyId, d.agentId, d.name, d.phone, d.email]);
+  await q('INSERT INTO client (id,"companyId","agentId",name,phone,email,ruc) VALUES ($1,$2,$3,$4,$5,$6,$7)', [id, d.companyId, d.agentId, d.name, d.phone, d.email, d.ruc || null]);
   return (await q('SELECT * FROM client WHERE id=$1', [id])).rows[0];
 }
 

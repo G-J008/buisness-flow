@@ -13,6 +13,9 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   if (typeof b.name === 'string' && b.name.trim()) f.name = b.name.trim();
   if (typeof b.productType === 'string' && b.productType.trim()) f.productType = b.productType.trim();
   if (typeof b.logo === 'string') f.logo = b.logo;
+  // details printed on construction proposals
+  for (const k of ['ruc', 'contact', 'email', 'bankDetails']) if (typeof b[k] === 'string') f[k] = b[k].trim();
+  if (b.defaultMargin !== undefined && Number(b.defaultMargin) >= 0) f.defaultMargin = Number(b.defaultMargin);
   const company = await updateCompany(params.id, f);
   return json({ ok: true, company });
 }

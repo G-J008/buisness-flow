@@ -18,6 +18,7 @@ export async function POST(req: Request) {
     name,
     phone: String(b.phone || '').trim() || null,
     email: String(b.email || '').trim() || null,
+    ruc: String(b.ruc || '').trim() || null,
   });
   return json({ ok: true, client });
 }

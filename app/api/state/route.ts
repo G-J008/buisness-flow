@@ -1,6 +1,7 @@
 import { ensureAdmin, getUser, listCompanies, listAllUsers, listUsersByCompany, listInventory, listClients, listSales, listRevenues, listExpenses, listPayments } from '@/lib/store';
 import { requireSession, resolveCompanyId, unauthorized, json, pubUser } from '@/lib/api';
 import { ensureDefaultCajas, listCajas, listMovs, listLog } from '@/lib/cajas';
+import { obraState } from '@/lib/obra';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,8 +14,10 @@ export async function GET(req: Request) {
   if (!me) return unauthorized();
 
   const requested = new URL(req.url).searchParams.get('companyId');
-  const companies =
+  let companies =
     s.role === 'admin' ? await listCompanies() : me.companyId ? (await listCompanies()).filter((c: any) => c.id === me.companyId) : [];
+  // the construction margin is not for sales agents
+  if (s.role === 'sales') companies = companies.map(({ defaultMargin, ...rest }: any) => rest);
   const activeCompanyId = await resolveCompanyId(s, requested);
 
   let users: any[] = [];
@@ -27,6 +30,7 @@ export async function GET(req: Request) {
   let cajas: any[] = [];
   let cajaMovs: any[] = [];
   let cajaLog: any[] = [];
+  let obra: any = null;
 
   if (s.role === 'admin') users = await listAllUsers();
   else if (activeCompanyId) users = await listUsersByCompany(activeCompanyId);
@@ -55,6 +59,8 @@ export async function GET(req: Request) {
       cajaMovs = await listMovs(activeCompanyId);
       cajaLog = await listLog(activeCompanyId);
     }
+    const active = companies.find((c: any) => c.id === activeCompanyId);
+    if (active && active.kind === 'construction') obra = await obraState(activeCompanyId, s.role as any, s.uid);
   }
 
   return json({
@@ -71,5 +77,6 @@ export async function GET(req: Request) {
     cajas,
     cajaMovs,
     cajaLog,
+    obra,
   });
 }

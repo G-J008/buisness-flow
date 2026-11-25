@@ -2,6 +2,20 @@
 Ventas, inventario, clientes y reportes para negocios comerciales (antes "Business Flow").
 Next.js + PostgreSQL (Neon), publicado en Vercel.
 
+## Argus Construction Division (nov 2026)
+Al crear una empresa, el admin elige **Comercio de artículos** o **Construcción y Obras**. Son dos sistemas distintos sobre la misma base de datos; los clientes, usuarios y cajas se comparten.
+
+Hojas de una empresa de Construcción y Obras:
+1. **Obras**: obras en curso con su % de avance (tareas terminadas / total), ordenadas por vista general, antigüedad o prioridad (tareas por vencer). Muestra el próximo cobro, el próximo pago y los recordatorios.
+2. **Propuestas**: formato estándar con el logo y los datos fijos de la empresa (nombre, número, RUC, contacto, email). Los datos variables y los trabajos salen del presupuesto elegido. Se descargan en PDF con espacio para firmas, y "Aprobada: crear obra" crea la obra.
+3. **Presupuestos**: cada ítem tiene medidas, cantidad, partes (vidrio, perfil…) con proveedor y producto, accesorios por cantidad y mano de obra por ítem o por m². El nombre se arma solo ("Puerta mano amiga con vidrio Fumé y perfil Amaderado"). El precio al cliente es el costo más el margen %. Se puede duplicar ítems y cambiar cantidades.
+4. **Calendario de pagos**: cobros a clientes y pagos a proveedores, con cheque (número y fecha a debitarse). Al marcar pagado se elige la caja. Cada carga o cambio queda en el registro.
+5. **Base de datos**: proveedores, categorías, productos con precio por m², por metro lineal o por unidad (con la fecha de la última actualización), y tipos de ítem.
+
+Los vendedores arman presupuestos y propuestas viendo precios con el margen ya incluido: nunca reciben costos de proveedores ni el margen. El margen por defecto y los datos de la propuesta (RUC, contacto, email, datos bancarios) se cargan en Perfil y Ajustes.
+
+Base de datos: tablas nuevas `c_*` y columnas nuevas (`company.kind`, datos de propuesta, `client.ruc`). Las empresas existentes quedan como "Comercio de artículos".
+
 ## Novedades (nov 2026, segunda entrega)
 - **Cajas**: por defecto Gs · Banco, Gs · Efectivo, USD · Banco y USD · Efectivo; se pueden crear más. Depósitos, retiros y transferencias entre cajas (también entre Gs y USD) piden siempre la cotización del día.
 - Las ventas al contado, gastos, otros ingresos, cobros a clientes y compras de inventario eligen su caja y generan el movimiento solos. Una venta a crédito no mueve caja hasta que el cliente paga.

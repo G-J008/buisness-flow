@@ -382,3 +382,39 @@ i[data-u]{font-style:normal}
 .fact.total .l{font-weight:700;color:var(--ink)}
 .fact.total .a{font-weight:700;font-size:17px}
 .panel-big.neg{color:var(--neg-text)}
+
+/* ---------- Argus Construcción ---------- */
+.obra-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media(max-width:1100px){.obra-grid{grid-template-columns:minmax(0,1fr)}}
+.obra-card{padding:16px 18px;margin-bottom:12px;cursor:pointer;transition:box-shadow .13s,border-color .13s}
+.obra-card:hover{box-shadow:var(--shadow-md,0 4px 14px rgba(0,0,0,.06))}
+.obra-name{font-weight:700;font-size:15.5px}
+.obra-pct{font-size:22px;font-weight:700;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:6px;background:#eef0f3;overflow:hidden;margin:10px 0}
+.bar span{display:block;height:100%;background:var(--accent);border-radius:6px}
+.rem-add{display:flex;gap:8px;align-items:center;margin:10px 0 4px}
+.rem-add .input{height:36px;flex:1;min-width:0}
+.modal.wide{max-width:920px}
+.form-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:760px){.form-grid.four{grid-template-columns:1fr 1fr}}
+.fg textarea{height:auto;padding:9px 12px;resize:vertical;font:inherit}
+.le-part{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--accent-tint-2)}
+.le-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap}
+.le-row .fg{flex:1 1 130px}.le-row .fg.grow{flex:2 1 220px}
+.le-row.acc{padding-left:18px;border-left:2px solid var(--line)}
+.le-sub{min-width:120px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums;padding-bottom:10px;font-size:13px}
+.le-sum{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line);align-items:end}
+@media(max-width:760px){.le-sum{grid-template-columns:1fr}}
+.le-smart{font-weight:600;font-size:15px;margin-top:4px}
+.pick-list{display:grid;gap:8px}
+.pick{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface);cursor:pointer}
+.pick:hover{border-color:var(--accent);background:var(--accent-tint-2)}
+.pick span{font-size:12.5px;color:var(--ink-2)}
+.pe-items{width:100%;border-collapse:collapse}
+.pe-items th{text-align:left;font-size:12px;font-weight:500;color:var(--muted);padding:6px}
+.pe-items td{padding:4px 6px;vertical-align:top}
+.pe-items input,.pe-items textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;background:var(--surface)}
+.qty-in{width:70px;height:32px;text-align:right}
+.price-in{width:130px;height:32px;text-align:right;margin-left:auto}
+.budget-tot{max-width:420px;margin-left:auto;padding:6px 20px 14px}
+.month-row td{background:#f6f7f9;font-weight:600;font-size:12.5px;color:var(--ink-2);padding:7px 18px}
