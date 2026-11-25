@@ -44,6 +44,9 @@ const ES={
   "invalid caja":"Caja inválida","exchange rate required":"Cotización requerida","caja has movements":"La caja tiene movimientos","bad currency":"Moneda inválida",
   "a transfer keeps its cajas — delete it and create it again":"Una transferencia mantiene sus cajas — elimínala y créala de nuevo",
   "this movement comes from a sale or expense — delete it there":"Este movimiento viene de una venta o gasto — elimínalo desde allí",
+  "Reset password":"Restablecer contraseña"," will sign in with the new password.":" entrará con la contraseña nueva.","Change password":"Cambiar contraseña","At least 8 characters":"Mínimo 8 caracteres",
+  "Current password":"Contraseña actual","New password":"Contraseña nueva","Repeat new password":"Repetir contraseña nueva","Save password":"Guardar contraseña","Password changed":"Contraseña cambiada",
+  "The passwords do not match":"Las contraseñas no coinciden","password too short":"La contraseña debe tener al menos 8 caracteres","current password is incorrect":"La contraseña actual es incorrecta",
   // v4 — quantity, real profit, reports, mobile
   "Sign out":"Cerrar sesión","View all":"Ver todo","Name":"Nombre","e.g. Watch, Phone, Shoe":"ej. Reloj, Celular, Zapato","e.g. ":"ej. ","Unit cost":"Costo unit.","More":"Más","Sections":"Secciones",
   "Month result":"Resultado del mes","Profit is what remains after the cost of what you sold":"La ganancia es lo que queda después del costo de lo que vendiste",

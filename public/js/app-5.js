@@ -60,7 +60,7 @@ function renderAdmin(){
     <td class="st-head"><div class="row-flex"><span class="avatar" style="background:${avColor(u.name)}" data-u>${u.avatar?`<img src="${u.avatar}">`:escHtml(initials(u.name))}</span><b data-u>${escHtml(u.name)}</b></div></td>
     <td class="muted" data-label="Username"><i data-u>@${escHtml(u.username)}</i></td><td data-label="Role"><span class="role-badge role-${u.role}" style="display:inline-block" data-u>${roleLabel(u.role)}</span></td>
     <td data-label="Company">${u.companyId?`<i data-u>${escHtml(co?co.name:'—')}</i>`:'<span class="muted">All companies</span>'}</td>
-    <td class="num st-act">${u.id!==session.user.id?`<button class="btn ghost sm danger" aria-label="Delete" onclick="delUser('${u.id}')">${trash()}</button>`:''}</td></tr>`; }).join(''));
+    <td class="num st-act"><span class="row-flex" style="justify-content:flex-end;gap:2px">${u.id!==session.user.id?`<button class="btn ghost sm" onclick="openPwReset('${u.id}')">Reset password</button><button class="btn ghost sm danger" aria-label="Delete" onclick="delUser('${u.id}')">${trash()}</button>`:''}</span></td></tr>`; }).join(''));
 }
 async function delUser(id){ try{ await apiReq('DELETE','/api/users/'+id); await reload(); buildCoSwitch(); toast('Profile removed'); }catch(e){ toast(apiErr(e),'warn'); } }
 
@@ -81,11 +81,29 @@ function viewSettings(){
     <div class="fg"><label>Username</label><input value="${escHtml(u.username)}" disabled style="opacity:.6"></div>
     <div class="fg"><label>Role</label><input value="${roleLabel(u.role)}" disabled style="opacity:.6"></div><div class="fg full"><label>Language</label><div class="lang-mini" id="setLang" style="margin-left:0"><button data-lang="es" class="${lang==='es'?'on':''}" onclick="setLang('es')">Español</button><button data-lang="en" class="${lang==='en'?'on':''}" onclick="setLang('en')">English</button></div></div></div>
     <div style="margin-top:16px"><button class="btn primary" onclick="saveProfile()">Save profile</button></div></div>
+    <div class="card" style="padding:22px;max-width:640px;margin-top:18px"><h3 class="panel-title" style="margin:0 0 2px;font-size:15px">Change password</h3><div class="hint" style="margin-bottom:16px">At least 8 characters</div>
+    <div class="form-grid"><div class="fg full"><label>Current password</label><input type="password" id="pw_cur" autocomplete="current-password"></div>
+    <div class="fg"><label>New password</label><input type="password" id="pw_new" autocomplete="new-password"></div><div class="fg"><label>Repeat new password</label><input type="password" id="pw_new2" autocomplete="new-password"></div></div>
+    <div style="margin-top:16px"><button class="btn primary" onclick="savePassword()">Change password</button></div></div>
     ${companyBlock}`;
 }
 let pendingAvatar=null, pendingLogo=null;
 function previewImg(input,prevId){ const f=input.files[0]; if(!f)return; const r=new FileReader(); r.onload=e=>{ document.getElementById(prevId).innerHTML=`<img src="${e.target.result}">`; if(prevId==='avPrev')pendingAvatar=e.target.result; else pendingLogo=e.target.result; }; r.readAsDataURL(f); }
 async function saveProfile(){ try{ const r=await apiReq('PATCH','/api/profile',{name:val('set_name'),avatar:pendingAvatar!=null?pendingAvatar:undefined}); session.user.name=r.user.name; session.user.avatar=r.user.avatar; pendingAvatar=null; refreshUserCard(); toast('Profile updated'); }catch(e){ toast(apiErr(e),'warn'); } }
+async function savePassword(){
+  const np=val('pw_new'); if(np.length<8){ document.getElementById('pw_new').classList.add('err'); toast('password too short','warn'); return; }
+  if(np!==val('pw_new2')){ document.getElementById('pw_new2').classList.add('err'); toast('The passwords do not match','warn'); return; }
+  try{ await apiReq('PATCH','/api/profile',{currentPassword:val('pw_cur'),newPassword:np}); ['pw_cur','pw_new','pw_new2'].forEach(i=>document.getElementById(i).value=''); toast('Password changed'); }catch(e){ toast(apiErr(e),'warn'); }
+}
+function openPwReset(id){ const u=DB.users.find(x=>x.id===id); if(!u) return;
+  showModalHTML(`<div class="modal"><div class="modal-head"><div><h3>Reset password</h3><p><i data-u>@${escHtml(u.username)}</i> will sign in with the new password.</p></div><button class="x" onclick="closeModal()">${xIcon()}</button></div>
+    <div class="modal-body"><div class="form-grid"><div class="fg"><label>New password <span class="req">*</span></label><input type="password" id="rp_new" autocomplete="new-password"></div><div class="fg"><label>Repeat new password <span class="req">*</span></label><input type="password" id="rp_new2" autocomplete="new-password"></div></div><div class="hint" style="margin-top:8px">At least 8 characters</div></div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="savePwReset('${id}')">Save password</button></div></div>`); }
+async function savePwReset(id){
+  const np=val('rp_new'); if(np.length<8){ document.getElementById('rp_new').classList.add('err'); toast('password too short','warn'); return; }
+  if(np!==val('rp_new2')){ document.getElementById('rp_new2').classList.add('err'); toast('The passwords do not match','warn'); return; }
+  try{ await apiReq('PATCH','/api/users/'+id,{password:np}); closeModal(); toast('Password changed'); }catch(e){ toast(apiErr(e),'warn'); }
+}
 async function saveCompany(){ const c=activeCompany(); try{ await apiReq('PATCH','/api/companies/'+c.id,{name:val('set_coname'),productType:val('set_ptype'),logo:pendingLogo!=null?pendingLogo:undefined}); pendingLogo=null; await loadState(adminCompanyId); refreshBrand(); buildCoSwitch(); toast('Company updated'); go('settings'); }catch(e){ toast(apiErr(e),'warn'); } }
 
 /* ============================================================
