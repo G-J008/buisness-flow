@@ -39,6 +39,7 @@ function openStatement(cid){
       <div class="fg"><label>Payment date <span class="req">*</span></label><input type="date" id="p_date" value="${today()}"></div>
       <div class="fg"><label>Amount paid <span class="req">*</span></label><input id="p_amount" inputmode="numeric" placeholder="${Math.round(credit).toLocaleString('es-PY')}"></div>
       <div class="fg"><label>Note <span class="muted" style="font-weight:400">(optional)</span></label><input id="p_note" placeholder="e.g. transfer, cash…"></div>
+      ${cajaField('p')}
       <button class="btn primary" style="height:40px" onclick="savePayment('${cid}')">${plus()}Register payment</button></div>`
     :`<div class="hint" style="margin-top:8px">This client has no pending credit balance.</div>`;
   showModalHTML(`<div class="modal wide" style="max-width:760px">
@@ -68,8 +69,9 @@ function escHtml(t){ return String(t).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'
 async function savePayment(cid){
   const amt=parseInt2(val('p_amount')); const date=val('p_date');
   if(amt<=0||!date){ if(amt<=0)document.getElementById('p_amount').classList.add('err'); toast('Enter an amount','warn'); return; }
+  const cj=cajaPayload('p'); if(!cj){ toast('Enter the exchange rate','warn'); return; }
   try{
-    await apiReq('POST','/api/payments',{companyId:activeCompanyId(),clientId:cid,amount:amt,date,note:val('p_note').trim()});
+    await apiReq('POST','/api/payments',{companyId:activeCompanyId(),clientId:cid,amount:amt,date,note:val('p_note').trim(),...cj});
     await reload(); openStatement(cid); toast('Payment registered');
   }catch(e){ toast(apiErr(e),'warn'); }
 }
@@ -130,7 +132,7 @@ function renderReport(){
   const none=`<tr><td class="st-block muted" colspan="8" style="padding:22px 18px">No sales this month</td></tr>`;
   const totalRow=(lead)=>`<tfoot><tr>${lead}<td class="num" data-label="Billed">${fmt(a.salesRev)}</td><td class="num" data-label="Cost">${fmt(a.cogs)}</td><td class="num" data-label="Profit"><span class="${a.gross<0?'neg':''}">${fmt(a.gross)}</span></td><td class="num" data-label="Margin">${pct(a.gross,a.salesRev)}</td></tr></tfoot>`;
   const howRows=shareRows(R.pay,a.salesRev,i=>['#1baf7a','#eda100'][i%2])+shareRows(R.deliv,a.salesRev,'#2a78d6');
-  const html=noCostNote(a)+`<div class="result-row">${stmtCard(a,p)}${factsCard('Cash and credit',[
+  const html=noCostNote(a)+`<div class="result-row">${profitPanel(a,'Month result')}${factsCard('Cash and credit',[
       ['Cash flow this month',fmt(a.cash),'Revenue minus every expense, inventory purchases included',a.cash<0?'neg':''],
       ['Inventory purchases this month',fmt(a.invBuy),'Becomes cost only when the units are sold'],
       ['Credit sold this month',fmt(R.creditSold)],
@@ -161,11 +163,11 @@ function exportReportPDF(){
   const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:'pt',format:'a4'}); const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=40;
   const base=a.salesRev+a.otherRev;
   doc.setFillColor(42,120,214); doc.rect(0,0,W,84,'F'); doc.setTextColor(255);
-  doc.setFont('times','bold'); doc.setFontSize(21); doc.text(co.name,M,42);
+  doc.setFont('helvetica','bold'); doc.setFontSize(21); doc.text(co.name,M,42);
   doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.text(T('Monthly report')+' · '+monthLabel(ym),M,62);
   doc.setFontSize(9); doc.text(T('Generated ')+fmtDate(today()),W-M,42,{align:'right'});
   let y=116;
-  const head=t=>{ if(y>H-130){ doc.addPage(); y=56; } doc.setTextColor(20); doc.setFont('times','bold'); doc.setFontSize(13); doc.text(T(t),M,y); y+=8; };
+  const head=t=>{ if(y>H-130){ doc.addPage(); y=56; } doc.setTextColor(20); doc.setFont('helvetica','bold'); doc.setFontSize(13); doc.text(T(t),M,y); y+=8; };
   const R_=i=>({halign:'right'});
   const tbl=(cols,body,right,extra)=>{ const cs={}; (right||[]).forEach(i=>cs[i]=R_());
     doc.autoTable({startY:y,head:cols?[cols.map(c=>T(c))]:undefined,body,theme:'plain',margin:{left:M,right:M,bottom:44},

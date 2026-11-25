@@ -1,4 +1,5 @@
-import { requireSession, unauthorized, forbidden, bad, json, resolveCompanyId } from '@/lib/api';
+import { requireSession, unauthorized, forbidden, bad, json, resolveCompanyId, actorOf, linkOf } from '@/lib/api';
+import { checkLink, linkMoney } from '@/lib/cajas';
 import { getClient, createPayment, clientOutstanding } from '@/lib/store';
 
 export const runtime = 'nodejs';
@@ -18,6 +19,8 @@ export async function POST(req: Request) {
   if (amount <= 0) return bad('amount required');
   const outstanding = await clientOutstanding(client.id);
   if (amount > Math.round(outstanding)) return bad('payment exceeds credit balance');
+  const link = linkOf(b);
+  try { await checkLink(companyId, link); } catch (e: any) { return bad(e.message); }
   const payment = await createPayment({
     companyId,
     clientId: client.id,
@@ -26,5 +29,6 @@ export async function POST(req: Request) {
     date: String(b.date || new Date().toISOString().slice(0, 10)),
     note: String(b.note || '').trim() || null,
   });
+  await linkMoney(companyId, link, { pyg: amount, direction: 'in', refType: 'payment', refId: payment.id, date: payment.date, description: 'Pago de ' + (client.name || 'cliente') }, await actorOf(s));
   return json({ ok: true, payment });
 }

@@ -2,6 +2,17 @@
 Ventas, inventario, clientes y reportes para negocios comerciales (antes "Business Flow").
 Next.js + PostgreSQL (Neon), publicado en Vercel.
 
+## Novedades (nov 2026, segunda entrega)
+- **Cajas**: por defecto Gs · Banco, Gs · Efectivo, USD · Banco y USD · Efectivo; se pueden crear más. Depósitos, retiros y transferencias entre cajas (también entre Gs y USD) piden siempre la cotización del día.
+- Las ventas al contado, gastos, otros ingresos, cobros a clientes y compras de inventario eligen su caja y generan el movimiento solos. Una venta a crédito no mueve caja hasta que el cliente paga.
+- Cada movimiento guarda usuario, fecha y hora. Se pueden editar; cada creación, edición y eliminación queda en el **Registro de cambios** con los valores anteriores y nuevos.
+- **Panel**: solo el mes en curso, en paneles de texto (ventas, ganancia, caja y crédito, cajas). La ganancia se lee en palabras: "de cada ₲ 100 facturados, ₲ X son ganancia neta".
+- **Gráficos**: hoja nueva con los gráficos y los meses anteriores.
+- **Tipografía**: una sola, Helvetica (Arial donde Helvetica no está instalada), también en los PDF.
+- **Consola de Admin**: botón "Nuevo admin maestro".
+
+Base de datos: solo tablas nuevas (`caja`, `caja_mov`, `caja_log`); los datos existentes no se modifican. Las cajas empiezan en cero: cargá el saldo inicial con un depósito.
+
 ## Novedades (nov 2026)
 - **Cantidad por artículo**: una línea de inventario puede tener varias unidades y una venta puede llevar varias unidades del mismo artículo. El artículo pasa a "Vendido" recién cuando sale la última unidad.
 - **Ganancia real**: el resultado del mes es ventas − costo de lo vendido − gastos operativos. La facturación y el flujo de caja (que incluye compras de inventario) se muestran aparte.

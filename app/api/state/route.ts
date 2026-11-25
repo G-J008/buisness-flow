@@ -1,5 +1,6 @@
 import { ensureAdmin, getUser, listCompanies, listAllUsers, listUsersByCompany, listInventory, listClients, listSales, listRevenues, listExpenses, listPayments } from '@/lib/store';
 import { requireSession, resolveCompanyId, unauthorized, json, pubUser } from '@/lib/api';
+import { ensureDefaultCajas, listCajas, listMovs, listLog } from '@/lib/cajas';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,11 +24,16 @@ export async function GET(req: Request) {
   let expenses: any[] = [];
   let revenues: any[] = [];
   let payments: any[] = [];
+  let cajas: any[] = [];
+  let cajaMovs: any[] = [];
+  let cajaLog: any[] = [];
 
   if (s.role === 'admin') users = await listAllUsers();
   else if (activeCompanyId) users = await listUsersByCompany(activeCompanyId);
 
   if (activeCompanyId) {
+    await ensureDefaultCajas(activeCompanyId);
+    cajas = await listCajas(activeCompanyId);
     inventory = await listInventory(activeCompanyId);
     if (s.role === 'sales') {
       clients = await listClients(activeCompanyId, s.uid);
@@ -38,12 +44,16 @@ export async function GET(req: Request) {
       // Sales agents never receive purchase costs or margins.
       inventory = inventory.map(({ purchaseUSD, fxRate, purchasePYG, ...rest }: any) => rest);
       sales = sales.map(({ unitCost, ...rest }: any) => rest);
+      // Sales agents only need the caja names to say where a cash sale or a payment went.
+      cajas = cajas.map(({ id, name, currency, kind }: any) => ({ id, name, currency, kind }));
     } else {
       clients = await listClients(activeCompanyId);
       sales = await listSales(activeCompanyId);
       revenues = await listRevenues(activeCompanyId);
       payments = await listPayments(activeCompanyId);
       expenses = await listExpenses(activeCompanyId);
+      cajaMovs = await listMovs(activeCompanyId);
+      cajaLog = await listLog(activeCompanyId);
     }
   }
 
@@ -58,5 +68,8 @@ export async function GET(req: Request) {
     expenses,
     revenues,
     payments,
+    cajas,
+    cajaMovs,
+    cajaLog,
   });
 }

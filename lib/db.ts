@@ -32,6 +32,9 @@ ALTER TABLE expense ADD COLUMN IF NOT EXISTS "inventoryId" TEXT;
 ALTER TABLE inventory ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
 ALTER TABLE sale ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
 ALTER TABLE sale ADD COLUMN IF NOT EXISTS "unitCost" DOUBLE PRECISION;
+CREATE TABLE IF NOT EXISTS caja (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, name TEXT NOT NULL, currency TEXT NOT NULL DEFAULT 'PYG', kind TEXT NOT NULL DEFAULT 'Efectivo', "sortOrder" INTEGER DEFAULT 100, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS caja_mov (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "cajaId" TEXT NOT NULL, direction TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL, "fxRate" DOUBLE PRECISION, date TEXT, description TEXT, "refType" TEXT NOT NULL DEFAULT 'manual', "refId" TEXT, "transferId" TEXT, "userId" TEXT, "userName" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(), "updatedAt" TIMESTAMPTZ, "updatedByName" TEXT);
+CREATE TABLE IF NOT EXISTS caja_log (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "movId" TEXT, "cajaId" TEXT, action TEXT NOT NULL, "userId" TEXT, "userName" TEXT, detail TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now())
 `;
 
 async function ensureSchema(pool: AnyPool) {

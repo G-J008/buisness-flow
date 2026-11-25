@@ -8,7 +8,7 @@ function emptyState(title,desc,ic,withBtn){ return `<div class="card" style="pad
 /* ---------- charts ---------- */
 const charts={};
 function mkChart(id,cfg){ if(charts[id])charts[id].destroy(); const el=document.getElementById(id); if(!el)return; charts[id]=new Chart(el,cfg); }
-const CHART_FONT='"Instrument Sans","Source Serif 4",system-ui,sans-serif';
+const CHART_FONT='"Helvetica Neue",Helvetica,Arial,sans-serif';
 const calm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
 if(window.Chart){ if(calm) Chart.defaults.animation=false; else Chart.defaults.animation.duration=320; Chart.defaults.font.family=CHART_FONT; Chart.defaults.font.size=12; Chart.defaults.color='#898781'; }
 const gridClr='rgba(11,11,11,0.07)', money2Tick=v=>fmtShort(v);
@@ -18,8 +18,6 @@ function lineOpts(){return{responsive:true,maintainAspectRatio:false,interaction
 function donutOpts(money,bottom){return{responsive:true,maintainAspectRatio:false,cutout:'66%',plugins:{legend:{position:bottom?'bottom':'right',labels:{...legendLbl,sort:undefined,padding:11}},tooltip:{...tt(),callbacks:{label:c=>{const tot=c.dataset.data.reduce((a,b)=>a+b,0);return ` ${c.label}: ${money?fmt(c.parsed):c.parsed} (${pct(c.parsed,tot)})`;}}}}};}
 function tt(){return{backgroundColor:'#0b0b0b',padding:11,cornerRadius:8,titleFont:{size:12,weight:'600'},bodyFont:{size:12.5},boxPadding:5,usePointStyle:true,callbacks:{label:c=>` ${c.dataset.label||c.label}: ${fmt(c.parsed.y!=null?c.parsed.y:c.parsed)}`}};}
 function grad(hex){return c=>{const{ctx,chartArea}=c.chart;if(!chartArea)return hex+'22';const g=ctx.createLinearGradient(0,chartArea.top,0,chartArea.bottom);g.addColorStop(0,hex+'2b');g.addColorStop(1,hex+'02');return g;};}
-// charts drawn before the web fonts arrive are redrawn once with the right type
-if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>Object.values(charts).forEach(c=>{ try{ c.update('none'); }catch(e){} }));
 
 /* ---------- icons ---------- */
 function icon(n){const p={
@@ -39,6 +37,8 @@ function navIcon(n){const p={
   doc:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/>',
   team:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
   shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+  chart:'<path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/>',
+  cash:'<rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/>',
   more:'<circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/>',
   cog:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
 }[n]||''; return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`; }

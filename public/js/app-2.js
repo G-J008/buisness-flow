@@ -34,7 +34,9 @@ async function logout(){ try{ await apiReq('POST','/api/auth/logout'); }catch(e)
    ============================================================ */
 const NAV=[
   {id:'dashboard',label:'Dashboard',group:'Overview',icon:'grid',show:()=>true},
+  {id:'charts',label:'Charts',group:'Overview',icon:'chart',show:()=>true},
   {id:'flow',label:'Business Flow',group:'Modules',icon:'flow',show:()=>true},
+  {id:'cajas',label:'Cajas',group:'Modules',icon:'cash',show:()=>can('expenses')},
   {id:'inventory',label:'Inventory',group:'Modules',icon:'box',show:()=>can('inventoryManage')},
   {id:'clients',label:'Clients',group:'Modules',icon:'users',show:()=>true},
   {id:'reports',label:'Monthly Reports',group:'Modules',icon:'doc',show:()=>can('reports')},
@@ -49,9 +51,9 @@ function bootApp(){
   document.getElementById('balChip').style.display = can('profitCharts')?'flex':'none';
   go(session.user.role==='admin' && !DB.companies.length ? 'admin' : 'dashboard');
 }
-const SHORT={dashboard:['Home','Panel'],flow:['Flow','Flujo'],reports:['Reports','Reportes'],inventory:['Stock','Inventario'],clients:['Clients','Clientes'],team:['Team','Equipo'],admin:['Admin','Admin'],settings:['Settings','Ajustes'],more:['More','Más']};
+const SHORT={dashboard:['Home','Panel'],flow:['Flow','Flujo'],reports:['Reports','Reportes'],inventory:['Stock','Inventario'],clients:['Clients','Clientes'],team:['Team','Equipo'],admin:['Admin','Admin'],cajas:['Cajas','Cajas'],charts:['Charts','Gráficos'],settings:['Settings','Ajustes'],more:['More','Más']};
 const shortLabel=id=>SHORT[id][lang==='es'?1:0];
-function mobilePrimary(){ const ids=can('reports')?['dashboard','flow','reports','inventory']:['dashboard','flow','clients']; return NAV.filter(n=>ids.includes(n.id)&&n.show()).sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); }
+function mobilePrimary(){ const ids=can('reports')?['dashboard','flow','cajas','reports']:['dashboard','flow','clients']; return NAV.filter(n=>ids.includes(n.id)&&n.show()).sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id)); }
 function buildNav(){
   const items=NAV.filter(n=>n.show());
   let html=''; let grp=null;
@@ -99,7 +101,7 @@ function refreshBrand(){ const c=activeCompany();
 }
 const MARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 19.5 12 4.5l7.5 15"/><circle cx="12" cy="15" r="1.7" fill="currentColor" stroke="none"/></svg>';
 
-const TITLES={dashboard:'Dashboard',flow:'Business Flow',inventory:'Inventory',clients:'Clients',reports:'Monthly Reports',team:'Team Performance',admin:'Admin Console',settings:'Profile & Settings'};
+const TITLES={cajas:'Cajas',charts:'Charts and past months',dashboard:'Dashboard',flow:'Business Flow',inventory:'Inventory',clients:'Clients',reports:'Monthly Reports',team:'Team Performance',admin:'Admin Console',settings:'Profile & Settings'};
 function go(v){
   const nav=NAV.find(n=>n.id===v); if(nav&&!nav.show()){ v='dashboard'; }
   currentView=v;
@@ -109,6 +111,8 @@ function go(v){
   const c=document.getElementById('content');
   if(v==='dashboard') c.innerHTML=tr(viewDashboard());
   else if(v==='flow') c.innerHTML=tr(viewFlow());
+  else if(v==='cajas') c.innerHTML=tr(viewCajas());
+  else if(v==='charts') c.innerHTML=tr(viewCharts());
   else if(v==='inventory') c.innerHTML=tr(viewInventory());
   else if(v==='clients') c.innerHTML=tr(viewClients());
   else if(v==='reports') c.innerHTML=tr(viewReports());

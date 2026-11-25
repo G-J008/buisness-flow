@@ -1,4 +1,5 @@
-import { requireSession, unauthorized, bad, json, resolveCompanyId } from '@/lib/api';
+import { requireSession, unauthorized, bad, json, resolveCompanyId, actorOf, linkOf } from '@/lib/api';
+import { checkLink, linkMoney } from '@/lib/cajas';
 import { getInventory, createSaleWithRevenue, soldUnits } from '@/lib/store';
 
 export const runtime = 'nodejs';
@@ -22,6 +23,10 @@ export async function POST(req: Request) {
   const left = (Number(inv.quantity) || 1) - (await soldUnits(inv.id));
   if (quantity > left) return bad('not enough stock');
   const agentId = s.role === 'sales' ? s.uid : String(b.agentId || '') || s.uid;
+  const payment = String(b.payment || 'Cash');
+  // A cash sale puts the money in the caja picked in the form; a credit sale only when the client pays.
+  const link = payment === 'Cash' ? linkOf(b) : { cajaId: null, fxRate: null };
+  try { await checkLink(companyId, link); } catch (e: any) { return bad(e.message); }
 
   const sale = await createSaleWithRevenue(
     {
@@ -31,10 +36,11 @@ export async function POST(req: Request) {
       quantity,
       delivery: String(b.delivery || 'Local pickup'),
       clientId: String(b.clientId || '') || null,
-      payment: String(b.payment || 'Cash'),
+      payment,
       date: String(b.date || new Date().toISOString().slice(0, 10)),
     },
     inv
   );
+  await linkMoney(companyId, link, { pyg: Number(sale.price) || 0, direction: 'in', refType: 'sale', refId: sale.id, date: sale.date, description: `${inv.brand} ${inv.model}${quantity > 1 ? ' x' + quantity : ''}` }, await actorOf(s));
   return json({ ok: true, sale });
 }
