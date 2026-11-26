@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS c_project (id TEXT PRIMARY KEY, "companyId" TEXT NOT 
 CREATE TABLE IF NOT EXISTS c_task (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, "projectId" TEXT NOT NULL, title TEXT NOT NULL, "dueDate" TEXT, done BOOLEAN DEFAULT false, "doneAt" TIMESTAMPTZ, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS c_reminder (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, text TEXT NOT NULL, date TEXT, done BOOLEAN DEFAULT false, "userId" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS c_payment (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, direction TEXT NOT NULL, "projectId" TEXT, "clientId" TEXT, "supplierId" TEXT, description TEXT, amount DOUBLE PRECISION NOT NULL DEFAULT 0, "dueDate" TEXT, method TEXT DEFAULT 'transferencia', "chequeNumber" TEXT, "chequeDate" TEXT, status TEXT DEFAULT 'pending', "paidAt" TEXT, "createdBy" TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now(), "updatedAt" TIMESTAMPTZ);
+ALTER TABLE c_product ADD COLUMN IF NOT EXISTS code TEXT;
 CREATE TABLE IF NOT EXISTS c_log (id TEXT PRIMARY KEY, "companyId" TEXT NOT NULL, entity TEXT, "entityId" TEXT, action TEXT NOT NULL, "userName" TEXT, detail TEXT, "createdAt" TIMESTAMPTZ NOT NULL DEFAULT now())
 `;
 

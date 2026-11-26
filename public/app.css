@@ -418,3 +418,13 @@ i[data-u]{font-style:normal}
 .price-in{width:130px;height:32px;text-align:right;margin-left:auto}
 .budget-tot{max-width:420px;margin-left:auto;padding:6px 20px 14px}
 .month-row td{background:#f6f7f9;font-weight:600;font-size:12.5px;color:var(--ink-2);padding:7px 18px}
+
+.imp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.imp-table td{vertical-align:top;font-size:13px}
+.imp-off td{color:var(--muted)}
+.imp-dec{margin-top:6px;height:32px;font-size:12.5px;max-width:260px}
+.modal.xwide{max-width:1180px}
+.imp-table{table-layout:fixed;width:100%;min-width:900px}
+.imp-table th,.imp-table td{padding:9px 10px;white-space:normal;word-break:break-word}
+.imp-table th:nth-child(1){width:38px}.imp-table th:nth-child(2){width:210px}.imp-table th:nth-child(6){width:120px}.imp-table th:nth-child(7){width:150px}
+.imp-dec{display:block;width:100%;max-width:200px}
